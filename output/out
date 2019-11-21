@@ -1,0 +1,13 @@
+andre@andre-PC:~/Music/Nelder-Mead_3DAB/source$ ./gpu
+Estado IFault = 2
+F(x) = -199.351807 (-190.044922)
+Numero de iteracoes = 1000193
+Numero de restarts = 1
+Tempo: 101.855234
+
+andre@andre-PC:~/Music/Nelder-Mead_3DAB/source$ ./cpu
+Estado IFault = 2
+F(x) = -198.767838 (-190.044891)
+Numero de iteracoes = 1000167
+Numero de restarts = 0
+Tempo: 133.367541
