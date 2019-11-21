@@ -215,8 +215,8 @@ int main(void)
     float ynewlo = oo.calculate( &start[0] );
     float a = ynewlo;
     float reqmin = 1.0E-18;
-    int konvge = 10;
     int kcount = 1000000;
+    int konvge = 10;
 
     objectiveFunction_object = &oo;
 
