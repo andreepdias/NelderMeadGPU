@@ -21,6 +21,11 @@ int main(){
     int protein_length = protein_chain.size();
     int dimension = angles.size();
 
+    for(int i = 0; i < dimension; i++){
+        printf("%5.5f ", angles[i]);
+    }
+    printf("\n-------------------\n");
+
     char aa_sequence[150];
     memset(aa_sequence, 0, sizeof(char) * 150);
     strcpy(aa_sequence, protein_chain.c_str());

@@ -111,13 +111,13 @@ __global__ void nelderMead_calculate(int protein_length, int dimension, float * 
 	}
 }
 
-__global__ void nelderMead_centroid(float * p_centroid, float * p_simplex, uint * p_indexes, const int dimension, const int p){
+__global__ void nelderMead_centroid(float * p_centroid, float * p_simplex, uint * p_indexes, const int dimension){
 
 	const int blockId = blockIdx.x;
 	const int threadId = threadIdx.x;
-	const int threadsMax = dimension - p + 1;
+	const int threadsMax = dimension + 1 - 1;
 
-	const int index = p_indexes[dimension - (dimension - p) + threadId];
+	const int index = p_indexes[threadId];
 	const int stride = index * dimension;
 
 	float value = p_simplex[stride + blockId];
@@ -168,77 +168,98 @@ __global__ void nelderMead_centroid(float * p_centroid, float * p_simplex, uint 
 	}
 }
 
-__global__ void nelderMead_reflection(float * p_simplex_reflected, float * p_centroid, float * p_simplex, uint * p_indexes, int dimension, int p, float reflection_coef){
+__global__ void nelderMead_reflection(float * p_simplex_reflected, float * p_centroid, float * p_simplex, uint * p_indexes, int dimension, float reflection_coef){
 
 	const int blockId = blockIdx.x;
 	const int threadId = threadIdx.x;
 
-	const int index = p_indexes[blockId + p];
-	const int stride = index * dimension;
+	const int index = blockId * 32 + threadId;
 
-	p_simplex_reflected[blockId * dimension + threadId] = p_centroid[threadId] + reflection_coef * (p_centroid[threadId] - p_simplex[stride + threadId]);
+
+	if(index < dimension){
+		p_simplex_reflected[index] = p_centroid[index] + reflection_coef * (p_centroid[index] - p_simplex[ p_indexes[dimension] * dimension + index]);
+	}
 }
 
 
-
-__global__ void nelderMead_update(float * p_simplex_reflected, float * p_centroid, float * p_simplex, uint * p_indexes, float * p_objective_function, float * p_objective_function_reflected, int dimension, int p, float reflection_coef){
+__global__ void nelderMead_extension(float * p_simplex_extension, float * p_simplex_reflected, float * p_centroid, int dimension, float extension_coef){
 
 	const int blockId = blockIdx.x;
 	const int threadId = threadIdx.x;
 
-	const int index = blockId;
-	const int stride = index * dimension;
+	const int index = blockId * 32 + threadId;
+
+
+	if(index < dimension){
+		p_simplex_extension[index] = p_simplex_reflected[index] + extension_coef * (p_simplex_reflected[index] - p_centroid[index]);
+	}
+}
+
+
+__global__ void nelderMead_update(float * p_simplex_reflected, float * p_simplex_extension, float * p_centroid, float * p_simplex, uint * p_indexes, float * p_objective_function, float * p_objective_function_reflected, float *  p_objective_function_extension, int dimension,  float reflection_coef, float extension_coef){
 
 	const float best = p_objective_function[0];
+	const float reflected = p_objective_function_reflected[0];
 
-	if(p_objective_function_reflected[index] > best){
-		nelderMead_updateExtension<<< 1, dimension >>>();
+	if(reflected < best){
+
+		const int numberBlocksExtension = ceil(dimension / 32.0f);
+
+		nelderMead_extension<<< numberBlocksExtension, 32 >>>(p_simplex_extension, p_simplex_reflected, p_centroid, dimension, extension_coef);
 		cudaDeviceSynchronize();
-	}else{
-		const int next_index = (index + 1) % p;
-
-		if(p_objective_function_reflected[index] < p_objective_function[next_index + p]){
-			nelderMead_updateReplace<<< >>>();
-			cudaDeviceSynchronize();
-
-		}else{
-			const bool use_reflected = false;
-
-			if(p_objective_function_reflected[index] < p_objective_function[index + p]){
-				use_reflected = true;
-			}
-			nelderMead_updateContract<<< >>>();
-			cudaDeviceSynchronize();
-
-		}
 	}
+	
+	// else{
+	// 	const int next_index = (index + 1) % p;
+
+	// 	if(p_objective_function_reflected[index] < p_objective_function[next_index + p]){
+	// 		nelderMead_updateReplace<<< >>>();
+	// 		cudaDeviceSynchronize();
+
+	// 	}else{
+	// 		const bool use_reflected = false;
+
+	// 		if(p_objective_function_reflected[index] < p_objective_function[index + p]){
+	// 			use_reflected = true;
+	// 		}
+	// 		nelderMead_updateContract<<< >>>();
+	// 		cudaDeviceSynchronize();
+
+	// 	}
+	// }
 }
 
 void nelderMead(int dimension, int protein_length, float start[]){
 
 	const int n = dimension;
 	const int psl = protein_length;
-	const int p = 2;
 	
 	const float step = 1.0f;
 	const float reflection_coef = 1.0f;
+	const float extension_coef = 1.0f;
 
     thrust::device_vector<float> d_objective_function(n + 1);
-	thrust::device_vector<float> d_simplex(n * (n + 1));
-	thrust::device_vector<float> d_start(n);
-	thrust::device_vector<float> d_centroid(n);
 	thrust::device_vector<uint>  d_indexes(n + 1);
-	thrust::device_vector<float> d_simplex_reflected(n * p);
-    thrust::device_vector<float> d_objective_function_reflected(p);
+	thrust::device_vector<float> d_start(n);
+	thrust::device_vector<float> d_simplex(n * (n + 1));
+	thrust::device_vector<float> d_centroid(n);
+	
+	thrust::device_vector<float> d_simplex_reflected(n);
+	thrust::device_vector<float> d_objective_function_reflected(1);	
+	thrust::device_vector<float> d_simplex_extension(n);
+    thrust::device_vector<float> d_objective_function_extension(1);
 
 
 	float * p_objective_function 		   = thrust::raw_pointer_cast(&d_objective_function[0]);
-	float * p_simplex			 		   = thrust::raw_pointer_cast(&d_simplex[0]);
-	float * p_start 			 		   = thrust::raw_pointer_cast(&d_start[0]);
-	float * p_centroid 			 		   = thrust::raw_pointer_cast(&d_centroid[0]);
 	uint  * p_indexes 				       = thrust::raw_pointer_cast(&d_indexes[0]);
+	float * p_start 			 		   = thrust::raw_pointer_cast(&d_start[0]);
+	float * p_simplex			 		   = thrust::raw_pointer_cast(&d_simplex[0]);
+	float * p_centroid 			 		   = thrust::raw_pointer_cast(&d_centroid[0]);
+	
 	float * p_simplex_reflected	 		   = thrust::raw_pointer_cast(&d_simplex_reflected[0]);
 	float * p_objective_function_reflected = thrust::raw_pointer_cast(&d_objective_function_reflected[0]);
+	float * p_simplex_extension	 		   = thrust::raw_pointer_cast(&d_simplex_extension[0]);
+	float * p_objective_function_extension = thrust::raw_pointer_cast(&d_objective_function_extension[0]);
 
 	thrust::copy(start, start + n, d_start.begin());
 
@@ -249,338 +270,56 @@ void nelderMead(int dimension, int protein_length, float start[]){
 	thrust::sequence(d_indexes.begin(), d_indexes.end());
 	thrust::sort_by_key(d_objective_function.begin(), d_objective_function.end(), d_indexes.begin());
 	
-	nelderMead_centroid<<< n, n + 1 - p >>>(p_centroid, p_simplex, p_indexes, dimension, p);
+	nelderMead_centroid<<< n, n + 1 - 1 >>>(p_centroid, p_simplex, p_indexes, dimension);
 	
-	nelderMead_reflection<<< p, n >>>(p_simplex_reflected, p_centroid, p_simplex, p_indexes, dimension, p, reflection_coef);
+	int numberBlocksReflection = ceil(n / 32.0f);
 	
-	nelderMead_calculate<<< p, psl - 2 >>>(psl, n, p_simplex_reflected, p_objective_function_reflected);
+	nelderMead_reflection<<< numberBlocksReflection, 32 >>>(p_simplex_reflected, p_centroid, p_simplex, p_indexes, dimension, reflection_coef);
 	
-	nelderMead_update<<< p, 1 >>>(p_simplex_reflected, p_centroid, p_simplex, p_indexes, p_objective_function, p_objective_function_reflected, dimension, p, reflection_coef);
+	nelderMead_calculate<<< 1, psl - 2 >>>(psl, n, p_simplex_reflected, p_objective_function_reflected);
 
-
-
-	/*
-	thrust::host_vector<float> h_objective_function = d_objective_function;
-	thrust::host_vector<float> h_objective_function_reflected = d_objective_function_reflected;
+	nelderMead_update<<< 1, 1 >>> (p_simplex_reflected, p_simplex_extension, p_centroid, p_simplex, p_indexes, p_objective_function, p_objective_function_reflected, p_objective_function_extension, dimension, reflection_coef, extension_coef );
+	
+	/* -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- */
 
 	thrust::host_vector<float> h_simplex = d_simplex;
+	thrust::host_vector<float> h_centroid = d_centroid;
+	thrust::host_vector<float> h_objective_function = d_objective_function;
+	thrust::host_vector<float> h_indexes = d_indexes;
 	thrust::host_vector<float> h_simplex_reflected = d_simplex_reflected;
-	thrust::host_vector<uint>  h_indexes = d_indexes;
+	thrust::host_vector<float> h_objective_function_reflected = d_objective_function_reflected;
 
+	printf("n: %d\tpsl: %d\n", n, psl);
 
-	for(int i = 0; i < n + 1; i++){
-		printf("%d. %5.5f\n", i + 1, h_objective_function[i]);
-
-		for(int j = 0; j < dimension; j++){
-			printf("%5.5f ", h_simplex[h_indexes[j]]);
+	for(int i  = 0; i <= n; i++){
+		printf("i: %d\tobj: %5.5f\t", i + 1, h_objective_function[i]);
+		for(int j = 0; j < n; j++){
+			printf("%5.5f ", h_simplex[h_indexes[i] *  dimension + j]);
 		}
 		printf("\n");
 	}
 	printf("\n");
-	for(int i = 0; i < p; i++){
-		printf("%d. %5.5f\n", i + 1, h_objective_function_reflected[i]);
-
-		for(int j = 0; j < dimension; j++){
-			printf("%5.5f ", h_simplex_reflected[j]);
-		}
-		printf("\n");
+	for(int j = 0; j < n; j++){
+		printf("%5.5f ", h_centroid[j]);
 	}
-	*/
+	printf("\n\n");
+
+	for(int j = 0; j < n; j++){
+		printf("%5.5f ", h_simplex_reflected[j]);
+	}
+	printf("\n\n");
+
+	printf("%5.5f\n", h_objective_function_reflected[0]);
+	
+	// nelderMead_calculate<<< p, psl - 2 >>>(psl, n, p_simplex_reflected, p_objective_function_reflected);
+	
+	// nelderMead_update<<< p, 1 >>>(p_simplex_reflected, p_centroid, p_simplex, p_indexes, p_objective_function, p_objective_function_reflected, dimension, p, reflection_coef);
+
+
+
 
 }
 
-/*
-void nelmin ( float (*fn)(float*), int n, float start[], float xmin[], float *ynewlo, float reqmin, float step[], int konvge, int kcount, int *icount, int *numres, int *ifault )
-{
-	const float ccoeff = 0.5;
-	const float ecoeff = 2.0;
-	const float rcoeff = 1.0;
-	int ihi,ilo,l,nn;
-	float del,dn;
-	float x,y2star,ylo,ystar,z;
 
-	
-	float dnn, rq;
-	const float eps = 0.001;
-	int jcount;
-	
-
-	//  Check the input parameters.
-	if ( reqmin <= 0.0 ) { 
-		*ifault = 1; 
-		return; 
-	}
-	if ( n < 1 ) { 
-		*ifault = 1; 
-		return; 
-	}
-	if ( konvge < 1 ) { 
-		*ifault = 1; 
-		return; 
-	}
-
-	std::vector<float> p(n*(n+1));
-	std::vector<float> pstar(n);
-	std::vector<float> p2star(n);
-	std::vector<float> pbar(n);
-	std::vector<float> y(n+1);
-
-	*icount = 0;
-	*numres = 0;
-	
-	
-	dn = ( float ) ( n );
-	nn = n + 1;
-	del = 1.0;
-
-	jcount = konvge; 
-	dnn = ( float ) ( nn );
-	rq = reqmin * dn;
-	//  Initial or restarted loop.
-	for ( ; ; ) {
-		
-		for (int i = 0; i < n; i++ ) {
-			p[i+n*n] = start[i]; 
-		}
-		
-		y[n] = (*fn)( start );
-
-		*icount = *icount + 1;
-
-		for (int j = 0; j < n; j++ ) {
-			x = start[j];
-			start[j] = start[j] + step[j] * del;
-			
-			for (int i = 0; i < n; i++ ) { 
-				p[i+j*n] = start[i]; 
-			}
-
-			y[j] = (*fn)( start );
-			*icount = *icount + 1;
-			start[j] = x;
-		}
-		//  The simplex construction is complete.
-		//                    
-		//  Find highest and lowest Y values.  YNEWLO = Y(IHI) indicates
-		//  the vertex of the simplex to be replaced.
-		ylo = y[0];
-		ilo = 0;
-
-		for (int i = 1; i < nn; i++ ) {
-			if ( y[i] < ylo ) { 
-				ylo = y[i]; 
-				ilo = i; 
-			}
-		}
-		//  Inner loop.
-		for ( ; ; ) {
-			if ( kcount <= *icount ) { 
-				break; 
-			}
-
-			*ynewlo = y[0];
-			ihi = 0;
-			
-			for (int i = 1; i < nn; i++ ) {
-				if ( *ynewlo < y[i] ) { 
-					*ynewlo = y[i]; 
-					ihi = i; 
-				}
-			}
-			//  Calculate PBAR, the centroid of the simplex vertices
-			//  excepting the vertex with Y value YNEWLO.
-			for (int i = 0; i < n; i++ ) {
-				z = 0.0;
-				
-				for (int j = 0; j < nn; j++ ) { 
-					z = z + p[i+j*n]; 
-				}
-
-				z = z - p[i+ihi*n];  
-				pbar[i] = z / dn;
-			}
-			//  Reflection through the centroid.
-			for (int i = 0; i < n; i++ ) {
-				pstar[i] = pbar[i] + rcoeff * ( pbar[i] - p[i+ihi*n] );
-			}
-
-			ystar = (*fn)( &pstar[0] );
-			*icount = *icount + 1;
-			//  Successful reflection, so extension.
-			if ( ystar < ylo ) {
-				for (int i = 0; i < n; i++ ) {
-					p2star[i] = pbar[i] + ecoeff * ( pstar[i] - pbar[i] );
-				}
-				y2star = (*fn)( &p2star[0] );
-				*icount = *icount + 1;
-			//  Check extension.
-				if ( ystar < y2star ) {
-					for (int i = 0; i < n; i++ ) { 
-						p[i+ihi*n] = pstar[i]; 
-					}
-					y[ihi] = ystar;
-				} else { //  Retain extension or contraction.
-					for (int i = 0; i < n; i++ ) { 
-						p[i+ihi*n] = p2star[i]; 
-					}
-					y[ihi] = y2star;
-				}
-			} else { //  No extension.
-				l = 0;
-				for (int i = 0; i < nn; i++ ) {
-					if ( ystar < y[i] ) {
-						l += 1;
-					}
-				}
-
-				if ( 1 < l ) {
-					for (int i = 0; i < n; i++ ) { 
-						p[i+ihi*n] = pstar[i]; 
-					}
-					y[ihi] = ystar;
-				}
-				//  Contraction on the Y(IHI) side of the centroid.
-				else if ( l == 0 ) {
-					for (int i = 0; i < n; i++ ) {
-						p2star[i] = pbar[i] + ccoeff * ( p[i+ihi*n] - pbar[i] );
-					}
-					y2star = (*fn)( &p2star[0] );
-					*icount = *icount + 1;
-			//  Contract the whole simplex.
-					if ( y[ihi] < y2star ) {
-						for (int j = 0; j < nn; j++ ) {
-							for (int i = 0; i < n; i++ ) {
-								p[i+j*n] = ( p[i+j*n] + p[i+ilo*n] ) * 0.5;
-								xmin[i] = p[i+j*n];
-							}
-							y[j] = (*fn)( xmin );
-							*icount = *icount + 1;
-						}
-						ylo = y[0];
-						ilo = 0;
-					
-						for (int i = 1; i < nn; i++ ) {
-							if ( y[i] < ylo ) { ylo = y[i]; ilo = i; }
-						}
-						continue;
-					}
-			//  Retain contraction.
-					else {
-						for (int i = 0; i < n; i++ ) {
-							p[i+ihi*n] = p2star[i];
-						}
-						y[ihi] = y2star;
-					}
-				}
-			//  Contraction on the reflection side of the centroid.
-				else if ( l == 1 ) {
-					for (int i = 0; i < n; i++ ) {
-						p2star[i] = pbar[i] + ccoeff * ( pstar[i] - pbar[i] );
-					}
-					y2star = (*fn)( &p2star[0] );
-					*icount = *icount + 1;
-			//
-			//  Retain reflection?
-			//
-					if ( y2star <= ystar ) {
-						for (int i = 0; i < n; i++ ) { 
-							p[i+ihi*n] = p2star[i]; 
-						}
-						y[ihi] = y2star;
-					}
-					else {
-						for (int i = 0; i < n; i++ ) { 
-							p[i+ihi*n] = pstar[i]; 
-						}
-						y[ihi] = ystar;
-					}
-				}
-			}
-			//  Check if YLO improved.
-			if ( y[ihi] < ylo ) { 
-				ylo = y[ihi]; ilo = ihi; 
-			}
-			
-			
-			jcount = jcount - 1;
-			
-			if ( 0 < jcount ) { 
-				continue; 
-			}
-
-			//  Check to see if minimum reached.
-			if ( *icount <= kcount ) {
-				jcount = konvge;
-
-				z = 0.0;
-				for (int i = 0; i < nn; i++ ) { 
-					z = z + y[i]; 
-				}
-				x = z / dnn;
-
-				z = 0.0;
-				for (int i = 0; i < nn; i++ ) {
-					z = z + pow ( y[i] - x, 2 );
-				}
-
-				if ( z <= rq ) {
-					break;
-				}
-			}
-			
-		}
-
-		//  Factorial tests to check that YNEWLO is a local minimum.
-		for (int i = 0; i < n; i++ ) { 
-			xmin[i] = p[i+ilo*n]; 
-		}
-
-		*ynewlo = y[ilo];
-
-		if ( kcount < *icount ) { 
-			*ifault = 2; 
-			break; 
-		}
-		
-
-		
-		*ifault = 0;
-
-		for (int i = 0; i < n; i++ ) {
-			del = step[i] * eps;
-			xmin[i] = xmin[i] + del;
-			z = (*fn)( xmin );
-			*icount = *icount + 1;
-			
-			if ( z < *ynewlo ) { 
-				*ifault = 2; break; 
-			}
-
-			xmin[i] = xmin[i] - del - del;
-			z = (*fn)( xmin );
-			*icount = *icount + 1;
-			
-			if ( z < *ynewlo ) { 
-				*ifault = 2; 
-				break; 
-			}
-
-			xmin[i] = xmin[i] + del;
-		}
-
-		if ( *ifault == 0 ) { break; }
-		//  Restart the procedure.
-		for (int i = 0; i < n; i++ ) { 
-			start[i] = xmin[i]; 
-		}
-
-		del = eps;
-		*numres = *numres + 1;
-		
-	}
-	return;
-}
-#endif
-*/
 
 #endif

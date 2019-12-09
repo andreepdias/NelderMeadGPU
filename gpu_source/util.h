@@ -8,6 +8,7 @@
 #include <thrust/host_vector.h>
 #include <thrust/sequence.h>
 #include <thrust/sort.h>
+#include <thrust/extrema.h>
 
 
 /* C++ imports */
