@@ -1,16 +1,6 @@
-#ifndef __UTIL_H
-#define __UTIL_H
+#ifndef __UTIL_HPP
+#define __UTIL_HPP
 
-/* Thrust imports */
-#include <thrust/transform_reduce.h>
-#include <thrust/functional.h>
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
-#include <thrust/sequence.h>
-#include <thrust/sort.h>
-
-
-/* C++ imports */
 #include <cmath>
 #include <iostream>
 #include <fstream>
