@@ -9,6 +9,9 @@
 #include <thrust/host_vector.h>
 #include <thrust/sequence.h>
 #include <thrust/execution_policy.h>
+#include <thrust/logical.h>
+
+#include <cooperative_groups.h>
 
 __constant__ char aminoacid_sequence[150];
 
@@ -70,67 +73,83 @@ void printCentroid(int dimension, thrust::device_vector<float> &d_centroid){
 	printf("\n\n");
 }
 
-void printReflection(int dimension, thrust::device_vector<float> &d_reflection){
+void printReflection(int p, int dimension, thrust::device_vector<float> &d_reflection){
 	thrust::host_vector<float> h_reflection = d_reflection;
 
-	printf("Reflection:\n");
-	for(int i = 0; i < dimension; i++){
-		printf("%.5f ", h_reflection[i]);
-	}
-	printf("\n\n");
-}
-
-void printObjectiveFunctionReflection(int dimension, thrust::device_vector<float> &d_objective_function){
-	thrust::host_vector<float> h_objective_function = d_objective_function;
-
-	printf("Objective Function Reflection:\n");
-	printf("%2u. %.10f\n\n", 1, h_objective_function[0]);
-}
-
-__device__ void printExpansion(int dimension, float * p_expansion){
-
-	printf("Expansion:\n");
-	for(int i = 0; i < dimension; i++){
-		printf("%.5f ", p_expansion[i]);
-	}
-	printf("\n\n");
-}
-
-__device__ void printContraction(int dimension, float * p_contraction){
-
-	printf("Contraction:\n");
-	for(int i = 0; i < dimension; i++){
-		printf("%.5f ", p_contraction[i]);
-	}
-	printf("\n\n");
-}
-
-__device__ void printObjectiveFunctionExpansion(float * p_obj_expansion){
-	printf("Objective Function Expansion:\n");
-	printf("%2d. %.10f\n\n", 1, p_obj_expansion[0]);
-}
-
-__device__ void printObjectiveFunctionContraction(float * p_obj_contraction){
-	printf("Objective Function Contraction:\n");
-	printf("%2d. %.10f\n\n", 1, p_obj_contraction[0]);
-}
-
-__device__ void printReplacement(int dimension, float * p_simplex, const char * msg){
-
-	printf("Replacement %s:\n", msg);
-
-	for(int i = 0; i < dimension + 1; i++){
-		printf("%2d. ", i + 1);
-		for(int j = 0; j < dimension; j++){
-			int stride = i * dimension;
-			printf("%.5f ", p_simplex[stride + j]);
+	for(int k = 0; k < p; k++){
+		printf("Reflection [%d]:\n", k);
+		for(int i = 0; i < dimension; i++){
+			printf("%.5f ", h_reflection[k * dimension + i]);
 		}
 		printf("\n");
 	}
 	printf("\n");
 }
 
-__device__ void printPreShrink(int dimension, float * p_simplex){
+void printObjectiveFunctionReflection(int p, int dimension, thrust::device_vector<float> &d_objective_function){
+	thrust::host_vector<float> h_objective_function = d_objective_function;
+
+	for(int k = 0; k < p; k++){
+		printf("Objective Function Reflection [%d]:\n", k);
+		printf("%2u. %.10f\n", 1, h_objective_function[0]);
+	}
+	printf("\n");
+
+}
+
+__device__ void printExpansion(int processor, int dimension, float * p_expansion){
+
+	int stride = processor * dimension;
+
+	printf("Expansion [%d]:\n", processor);
+	for(int i = 0; i < dimension; i++){
+		printf("%.5f ", p_expansion[stride + i]);
+	}
+	printf("\n\n");
+}
+
+__device__ void printContraction(int processor, int dimension, float * p_contraction){
+
+	int stride = processor * dimension;
+
+	printf("Contraction [%d]:\n", processor);
+	for(int i = 0; i < dimension; i++){
+		printf("%.5f ", p_contraction[stride + i]);
+	}
+	printf("\n\n");
+}
+
+__device__ void printObjectiveFunctionExpansion(int processor, float * p_obj_expansion){
+	printf("Objective Function Expansion [%d]:\n", processor);
+	printf("%2d. %.10f\n\n", 1, p_obj_expansion[processor]);
+}
+
+__device__ void printObjectiveFunctionContraction(int processor, float * p_obj_contraction){
+	printf("Objective Function Contraction [%d]:\n", processor);
+	printf("%2d. %.10f\n\n", 1, p_obj_contraction[processor]);
+}
+
+__device__ void printReplacement(int blockId, const char * msg){
+	printf("Replacement [%d]: %s.\n", blockId, msg);
+}
+
+void printSimplex(int dimension, thrust::device_vector<float> &d_simplex, thrust::device_vector<uint> &d_indexes){
+	thrust::host_vector<float> h_simplex = d_simplex;
+	thrust::host_vector<uint>   h_indexes = d_indexes;
+	
+	for(int i = 0; i < dimension + 1; i++){
+		printf("%2u. ", h_indexes[i] + 1);
+		for(int j = 0; j < dimension; j++){
+			int stride = h_indexes[i] * dimension;
+			printf("%.5f ", h_simplex[stride + j]);
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void printPreShrink(int dimension, thrust::device_vector<float> &d_simplex){
+	thrust::host_vector<float> h_simplex = d_simplex;
 
 	printf("Pre Shrink:\n");
 
@@ -138,14 +157,15 @@ __device__ void printPreShrink(int dimension, float * p_simplex){
 		printf("%2d. ", i + 1);
 		for(int j = 0; j < dimension; j++){
 			int stride = i * dimension;
-			printf("%.5f ", p_simplex[stride + j]);
+			printf("%.5f ", h_simplex[stride + j]);
 		}
 		printf("\n");
 	}
 	printf("\n");
 }
 
-__device__ void printShrink(int dimension, float * p_simplex){
+void printShrink(int dimension, thrust::device_vector<float> &d_simplex){
+	thrust::host_vector<float> h_simplex = d_simplex;
 
 	printf("Shrink Case 3b (contraction worst than worst vertex):\n");
 
@@ -153,7 +173,7 @@ __device__ void printShrink(int dimension, float * p_simplex){
 		printf("%2d. ", i + 1);
 		for(int j = 0; j < dimension; j++){
 			int stride = i * dimension;
-			printf("%.5f ", p_simplex[stride + j]);
+			printf("%.5f ", h_simplex[stride + j]);
 		}
 		printf("\n");
 	}
@@ -173,12 +193,18 @@ __global__ void nelderMead_initialize(int dimension, float step, float * start, 
 	}
 }
 
-__global__ void nelderMead_calculate(int dimension, int protein_length, float * p_simplex, float * p_objective_function){
+__global__ void nelderMead_calculate(int dimension, int protein_length, float * p_simplex, float * p_objective_function, bool is_specific_block = false, int specific_block = 0){
 
 	int blockId = blockIdx.x;
+
+	if(specific_block){
+		blockId = specific_block;
+	}
+
+	int stride = blockId * dimension;
+
 	int threadId = threadIdx.x;
 	int threadsMax = protein_length - 2;
-	int stride = blockId * dimension;
 	
 	__shared__ float aminoacid_position[150 * 3];
 
@@ -396,58 +422,51 @@ __global__ void nelderMead_centroid(int dimension, float * p_simplex, uint * p_i
 	}
 }
 
-__global__ void nelderMead_reflection(int dimension, float reflection_coef, float * p_simplex, uint * p_indexes, float * p_centroid, float * p_reflection){
+__global__ void nelderMead_reflection(int p, int dimension, float reflection_coef, float * p_simplex, uint * p_indexes, float * p_centroid, float * p_reflection){
 
+	int index = threadIdx.x;
 	int blockId = blockIdx.x;
-	int threadId = threadIdx.x;
-
-	int index = blockId * 32 + threadId; 
-
+	int stride = blockId * dimension;
 
 	if(index < dimension){
-		p_reflection[index] = p_centroid[index] + reflection_coef * (p_centroid[index] - p_simplex[ p_indexes[dimension] * dimension + index]);
+		p_reflection[stride + index] = p_centroid[index] + reflection_coef * (p_centroid[index] - p_simplex[ p_indexes[dimension - blockId] * dimension + index]);
 	}
 }
 
-__global__ void nelderMead_expansion(int dimension, float expansion_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion){
+__global__ void nelderMead_expansion(int processor, int dimension, float expansion_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion){
 
-	int blockId = blockIdx.x;
-	int threadId = threadIdx.x;
-
-	int index = blockId * 32 + threadId; 
+	int index = threadIdx.x;
+	int stride = processor * dimension;
 
 	if(index < dimension){
-		p_expansion[index] = p_reflection[index] + expansion_coef * (p_reflection[index] - p_centroid[index]);
+		p_expansion[stride + index] = p_reflection[stride + index] + expansion_coef * (p_reflection[stride + index] - p_centroid[index]);
 	}
 }
 
-__global__ void nelderMead_contraction(int dimension, float contraction_coef, float * p_centroid, float * p_vertex, int stride, float * p_contraction){
+__global__ void nelderMead_contraction(int processor, int dimension, float contraction_coef, float * p_centroid, float * p_vertex, int stride, float * p_contraction){
 
-	int blockId = blockIdx.x;
-	int threadId = threadIdx.x;
-
-	int index = blockId * 32 + threadId; 
+	int index = threadIdx.x;
+	int stride_contraction = processor * dimension;
 
 	if(index < dimension){
-		p_contraction[index] = p_centroid[index] + contraction_coef * (p_vertex[stride + index] - p_centroid[index]);
+		p_contraction[stride_contraction + index] = p_centroid[index] + contraction_coef * (p_vertex[stride + index] - p_centroid[index]);
 	}
 }
 
-__global__ void nelderMead_replacement(int dimension, float * p_simplex, float * p_new_vertex, uint * p_indexes, float * p_objective_function, float * p_obj){
+__global__ void nelderMead_replacement(int processor, int dimension, float * p_simplex, float * p_new_vertex, uint * p_indexes, float * p_objective_function, float * p_obj){
 
-	int blockId = blockIdx.x;
-	int threadId = threadIdx.x;
+	int index = threadIdx.x;
 
-	int index = blockId * 32 + threadId; 
-	int stride = p_indexes[dimension] * dimension;
+	int stride = processor * dimension;
+	int stride_worst = p_indexes[dimension - processor] * dimension;
 
 
 	if(index < dimension){
-		p_simplex[stride + index] = p_new_vertex[index];
+		p_simplex[stride_worst + index] = p_new_vertex[stride + index];
 	}
 
-	if(blockId == 0 and threadId == 0){
-		p_objective_function[dimension] = p_obj[0];
+	if(threadIdx.x == 0){
+		p_objective_function[dimension - processor] = p_obj[processor];
 	}
 }
 
@@ -469,70 +488,84 @@ __device__ void sequence(uint * p_indexes, int end){
 	}
 }
 
-__global__ void nelderMead_update(int dimension, int protein_length, float expansion_coef, float contraction_coef, float shrink_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, float * p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction){
+__global__ void nelderMead_update(int p, int dimension, int protein_length, float expansion_coef, float contraction_coef, float shrink_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, float * p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction, bool * p_need_shrink){
 
-	int numberBlocks = ceil(dimension / 32.0f);
+	int blockId = blockIdx.x;
+	float worst = p_objective_function[dimension - blockId];
+	float next_worst = p_objective_function[dimension - blockId - 1];
 
-	if(p_obj_reflection[0] < p_objective_function[0]){
+	cooperative_groups::grid_group g = cooperative_groups::this_grid();
+	g.sync();
 
-		nelderMead_expansion<<< numberBlocks, 32 >>>(dimension, expansion_coef, p_simplex, p_centroid, p_reflection, p_expansion);
+	p_need_shrink[blockId] = false;
+
+	if(p_obj_reflection[blockId] < p_objective_function[0]){
+
+		nelderMead_expansion<<< 1, dimension >>>(blockId, dimension, expansion_coef, p_simplex, p_centroid, p_reflection, p_expansion);
 		cudaDeviceSynchronize();
-		printExpansion(dimension, p_expansion);
+		printExpansion(blockId, dimension, p_expansion);
 		
-		nelderMead_calculate<<< 1, protein_length - 2 >>>(dimension, protein_length, p_expansion, p_obj_expansion);
+		nelderMead_calculate<<< 1, protein_length - 2 >>>(dimension, protein_length, p_expansion, p_obj_expansion, true, blockId);
 		cudaDeviceSynchronize();
-		printObjectiveFunctionExpansion(p_obj_expansion);
+		printObjectiveFunctionExpansion(blockId, p_obj_expansion);
 		
-		if(p_obj_expansion[0] < p_objective_function[0]){
-			nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_expansion, p_indexes, p_objective_function, p_obj_expansion);
+		if(p_obj_expansion[blockId] < p_objective_function[0]){
+			nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_expansion, p_indexes, p_objective_function, p_obj_expansion);
 			cudaDeviceSynchronize();
-			printReplacement(dimension, p_simplex, "Case 1a (expansion better than best vertex)");
+			printReplacement(blockId, "Case 1a (expansion better than best vertex)");
 		}else{
-			nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
+			nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
 			cudaDeviceSynchronize();
-			printReplacement(dimension, p_simplex, "Case 1b (reflection better than best vertex)");
+			printReplacement(blockId, "Case 1b (reflection better than best vertex)");
 		}
-	
-	}else if(p_obj_reflection[0] < p_objective_function[dimension - 1]){
-		nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
+	}
+	else if(p_obj_reflection[blockId] < next_worst){
+		nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
 		cudaDeviceSynchronize();
-		printReplacement(dimension, p_simplex, "Case 2 (reflection better than second worst vertex)");
+		printReplacement(blockId, "Case 2 (reflection better than second worst vertex)");
 
 	}else{
 
-		printf("Reflection: %.5f, Worst: %.5f\n", p_obj_reflection[0], p_objective_function[dimension]);
-		if(p_obj_reflection[0] < p_objective_function[dimension]){
-			printf("First case contraction\n");
-			nelderMead_contraction<<< numberBlocks, 32 >>>(dimension, contraction_coef, p_centroid, p_reflection, 0, p_contraction);
+		bool is_reflection_better = false;
+
+		if(p_obj_reflection[blockId] < worst){
+			is_reflection_better = true;
+
+			nelderMead_contraction<<< 1, dimension >>>(blockId, dimension, contraction_coef, p_centroid, p_reflection, blockId * dimension, p_contraction);
 			cudaDeviceSynchronize();
 		}else{
-			printf("Second case contraction\n");
-			nelderMead_contraction<<< numberBlocks, 32 >>>(dimension, contraction_coef, p_centroid, p_simplex, p_indexes[dimension] * dimension, p_contraction);
+			nelderMead_contraction<<< 1, dimension >>>(blockId, dimension, contraction_coef, p_centroid, p_simplex, p_indexes[dimension - blockId] * dimension, p_contraction);
 			cudaDeviceSynchronize();
 		}
-		printContraction(dimension, p_contraction);
+		printContraction(blockId, dimension, p_contraction);
 
-		nelderMead_calculate<<< 1, protein_length - 2 >>>(dimension, protein_length, p_contraction, p_obj_contraction);
+		nelderMead_calculate<<< 1, protein_length - 2 >>>(dimension, protein_length, p_contraction, p_obj_contraction, true, blockId);
 		cudaDeviceSynchronize();
-		printObjectiveFunctionContraction(p_obj_contraction);
+		printObjectiveFunctionContraction(blockId, p_obj_contraction);
 		 
 
-		if(p_obj_contraction[0] < p_objective_function[dimension]){
-			nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_contraction, p_indexes, p_objective_function, p_obj_contraction);
+		if(p_obj_contraction[blockId] < worst and p_obj_contraction[blockId] < p_obj_reflection[blockId]){
+			nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_contraction, p_indexes, p_objective_function, p_obj_contraction);
 			cudaDeviceSynchronize();
-			printReplacement(dimension, p_simplex, "Case 3a (contraction better than worst vertex)");
+			printReplacement(blockId, "Case 3a (contraction better than worst vertex)");
 		}else{
-			printPreShrink(dimension, p_simplex);
-			nelderMead_shrink<<< dimension, dimension >>>(dimension, shrink_coef, p_simplex, p_indexes);
-			cudaDeviceSynchronize();
-			printShrink(dimension, p_simplex);
-			sequence(p_indexes, dimension + 1);
-			nelderMead_calculate<<< dimension + 1, protein_length - 2 >>>(dimension, protein_length, p_simplex, p_objective_function);
+			p_need_shrink[blockId] = true;
+
+			if(is_reflection_better){
+				nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
+				cudaDeviceSynchronize();
+				printReplacement(blockId, "Case 3b (contraction worse than worst vertex and reflection point -> reflection better than worst)");
+			}else{
+				printReplacement(blockId, "Case 3c (contraction worse than worst vertex and reflection point -> reflection worse than worst)");
+			}
+
 		}
 	}
 }
 
-void nelderMead(int dim, int psl, float start[], int iterations_number ){
+void nelderMead(int dim, int psl, float start[], int iterations_number){
+
+	int p = 1;
 
 	int dimension = dim;
 	int protein_length = psl;
@@ -551,16 +584,18 @@ void nelderMead(int dim, int psl, float start[], int iterations_number ){
 	thrust::device_vector<float> d_simplex(dimension * (dimension + 1));	
 
 	thrust::device_vector<float> d_centroid(dimension);
-	thrust::device_vector<float> d_reflection(dimension);
-	thrust::device_vector<float> d_expansion(dimension);
-	thrust::device_vector<float> d_contraction(dimension);
+	thrust::device_vector<float> d_reflection(dimension * p);
+	thrust::device_vector<float> d_expansion(dimension * p);
+	thrust::device_vector<float> d_contraction(dimension * p);
 	
     thrust::device_vector<float> d_objective_function(dimension + 1);
 	thrust::device_vector<uint>  d_indexes(dimension + 1);
 
-	thrust::device_vector<float> d_obj_reflection(1);	
-	thrust::device_vector<float> d_obj_expansion(1);	
-	thrust::device_vector<float> d_obj_contraction(1);
+	thrust::device_vector<float> d_obj_reflection(p);	
+	thrust::device_vector<float> d_obj_expansion(p);	
+	thrust::device_vector<float> d_obj_contraction(p);
+
+	thrust::device_vector<bool>  d_need_shrink(p);
 
 	float * p_start 			 		   = thrust::raw_pointer_cast(&d_start[0]);
 	
@@ -579,43 +614,57 @@ void nelderMead(int dim, int psl, float start[], int iterations_number ){
 	float * p_obj_reflection 			   = thrust::raw_pointer_cast(&d_obj_reflection[0]);
 	float * p_obj_expansion 			   = thrust::raw_pointer_cast(&d_obj_expansion[0]);
 	float * p_obj_contraction 			   = thrust::raw_pointer_cast(&d_obj_contraction[0]);
+
+	bool * p_need_shrink 				   = thrust::raw_pointer_cast(&d_need_shrink[0]);
 	
 	thrust::copy(start, start + dimension, d_start.begin());
 
 	printStart(dimension, d_start);
-	
 
-	/* int, float, pointers */
+
 	nelderMead_initialize<<< dimension + 1, dimension >>>(dimension, step, p_start, p_simplex);
 	cudaDeviceSynchronize();
 	printInitialize(dimension, d_simplex);
 
 	thrust::sequence(d_indexes.begin(), d_indexes.end());
-
+	
 	nelderMead_calculate<<< dimension + 1, protein_length - 2 >>>(dimension, protein_length, p_simplex, p_objective_function);
 	cudaDeviceSynchronize();
 	printObjectiveFunction(dimension, d_objective_function, d_indexes);
 	
 	thrust::sort_by_key(d_objective_function.begin(), d_objective_function.end(), d_indexes.begin());
 	printObjectiveFunctionSorted(dimension, d_objective_function, d_indexes);
-
+	
 	for(int i = 0; i < iterations_number; i++){
-		nelderMead_centroid<<< dimension, dimension >>>(dimension, p_simplex, p_indexes, p_centroid);
+		nelderMead_centroid<<< dimension - p + 1, dimension >>>(dimension, p_simplex, p_indexes, p_centroid);
 		cudaDeviceSynchronize();
 		printCentroid(dimension, d_centroid);
 		
-		int numberBlocksReflection = ceil(dimension / 32.0f);
-		
-		nelderMead_reflection<<< numberBlocksReflection, 32 >>>(dimension, reflection_coef, p_simplex, p_indexes, p_centroid, p_reflection);
+		nelderMead_reflection<<< p, dimension >>>(p, dimension, reflection_coef, p_simplex, p_indexes, p_centroid, p_reflection);
 		cudaDeviceSynchronize();
-		printReflection(dimension, d_reflection);
+		printReflection(p, dimension, d_reflection);
 		
-		nelderMead_calculate<<< 1, protein_length - 2 >>>(dimension, protein_length, p_reflection, p_obj_reflection);
+		nelderMead_calculate<<< p, protein_length - 2 >>>(dimension, protein_length, p_reflection, p_obj_reflection);
 		cudaDeviceSynchronize();
-		printObjectiveFunctionReflection(dimension, d_obj_reflection);
+		printObjectiveFunctionReflection(p, dimension, d_obj_reflection);
 		
-		nelderMead_update<<< 1, 1 >>>(dimension, protein_length, expansion_coef, contraction_coef, shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction);
+		
+		nelderMead_update<<< p, 1 >>>(p, dimension, protein_length, expansion_coef, contraction_coef, shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, p_need_shrink);
 		cudaDeviceSynchronize();
+		printSimplex(dimension, d_simplex, d_indexes);
+		
+		bool need_shrink = thrust::any_of(d_need_shrink.begin(), d_need_shrink.end(), thrust::identity<bool>());
+		
+		if(need_shrink){
+			printPreShrink(dimension, d_simplex);
+			nelderMead_shrink<<< dimension, dimension >>>(dimension, shrink_coef, p_simplex, p_indexes);
+			cudaDeviceSynchronize();
+			printShrink(dimension, d_simplex);
+
+			thrust::sequence(d_indexes.begin(), d_indexes.end());
+			nelderMead_calculate<<< dimension + 1, protein_length - 2 >>>(dimension, protein_length, p_simplex, p_objective_function);
+			cudaDeviceSynchronize();
+		}
 		
 		printObjectiveFunction(dimension, d_objective_function, d_indexes);
 		thrust::sort_by_key(d_objective_function.begin(), d_objective_function.end(), d_indexes.begin());

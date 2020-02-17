@@ -9,6 +9,9 @@ int main(){
     std::string protein_name, protein_chain;
     std::vector<float> angles;
 
+    int iterations_number;
+
+    input_file >> iterations_number;
     input_file >> protein_name;
     input_file >> protein_chain;
 
@@ -20,6 +23,6 @@ int main(){
     int protein_length = protein_chain.size();
     int dimension = angles.size();
 
-    nelderMead(dimension, protein_length, &angles[0], protein_chain.c_str());
+    nelderMead(dimension, protein_length, &angles[0], protein_chain.c_str(), iterations_number);
 
 }

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sys/time.h>
 #include <vector>
+#include <algorithm>
 
 #define PI 3.1415926535897932384626433832795029
 
