@@ -39,7 +39,8 @@ int main(){
     if(parameters.problem_type == BENCHMARK){
 
     }else{
-        ABOffLattice * parametersAB;
+        
+        ABOffLattice * parametersAB = new ABOffLattice();
 
         std::string protein_name, protein_chain;
         std::vector<float> angles;

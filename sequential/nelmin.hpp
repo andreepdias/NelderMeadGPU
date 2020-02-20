@@ -190,6 +190,8 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 
 void nelderMead(NelderMead &parameters, void * problem_parameters){
 
+
+
 	int dimension = parameters.dimension;
 
 	parameters.step = 1.0f;
@@ -222,6 +224,7 @@ void nelderMead(NelderMead &parameters, void * problem_parameters){
 	parameters.p_obj_reflection = &obj_reflection[0];
 	parameters.p_obj_expansion = &obj_expansion[0];
 	parameters.p_obj_contraction = &obj_contraction[0];
+
 
 	printVertex(parameters.dimension, parameters.p_start, "Start");
 
