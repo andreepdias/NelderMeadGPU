@@ -2,41 +2,10 @@
 #define NELMIN_H
 
 #include "util.hpp"
+#include "objectivefunctions.hpp"
 
-struct ABOffLattice{
 
-	int protein_length;
-	const char * aminoacid_sequence;
-
-};
-
-struct NelderMead{
-
-	int iterations_number;
-
-	int dimension;
-
-	float step;
-	float reflection_coef;
-	float expansion_coef;
-	float contraction_coef;
-	float shrink_coef;
-	
-	float * p_start;
-
-	float * p_simplex;	
-
-	float * p_centroid;
-	float * p_reflection;
-	float * p_expansion;
-	float * p_contraction;
-
-	std::pair<float, int> * p_objective_function;
-	std::pair<float, int> * p_obj_reflection;
-	std::pair<float, int> * p_obj_expansion;
-	std::pair<float, int> * p_obj_contraction;
-
-};
+void nelderMead(NelderMead &parameters, void * problem_parameters);
 
 void printVertex(int dimension, float * p_vertex, const char * msg){
 	printf("%s:\n", msg);
@@ -86,61 +55,13 @@ void nelderMead_initialize(NelderMead &p){
 	}
 }
 
-void nelderMead_calculate(NelderMead &p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
+void nelderMead_calculate(NelderMead & p, void * problem_p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
 
-	std::vector<float> aminoacid_position(p.protein_length * 3);
-
-
-	for(int k = 0; k < number_evalueted_vertexes; k++){
-		/* Existem dimension + 1 vértices, com dimension elementos cada, stride acessa o vértice da iteração k */
-		int stride = k * p.dimension;
-
-		for(int i = 0; i < p.protein_length - 2; i++){
-
-			aminoacid_position[0] = 0.0f;
-			aminoacid_position[0 + p.protein_length] = 0.0f;
-			aminoacid_position[0 + p.protein_length * 2] = 0.0f;
-
-			aminoacid_position[1] = 0.0f;
-			aminoacid_position[1 + p.protein_length] = 1.0f;
-			aminoacid_position[1 + p.protein_length * 2] = 0.0f;
-
-			aminoacid_position[2] = cosf(p_simplex[stride + 0]);
-			aminoacid_position[2 + p.protein_length] = sinf(p_simplex[stride + 0]) + 1.0f;
-			aminoacid_position[2 + p.protein_length * 2] = 0.0f;
-
-			for(int j = 3; j < p.protein_length; j++){
-				aminoacid_position[j] = aminoacid_position[j - 1] + cosf(p_simplex[stride + j - 2]) * cosf(p_simplex[stride + j + p.protein_length - 5]); // j - 3 + p.protein_length - 2
-				aminoacid_position[j + p.protein_length] = aminoacid_position[j - 1 + p.protein_length] + sinf(p_simplex[stride + j - 2]) * cosf(p_simplex[stride + j + p.protein_length - 5]);
-				aminoacid_position[j + p.protein_length * 2] = aminoacid_position[j - 1 + p.protein_length * 2] + sinf(p_simplex[stride + j + p.protein_length - 5]);
-			}
-		}
-
-		float sum = 0.0f;
-
-		for(int i = 0; i < p.protein_length - 2; i++){
-			sum += (1.0f - cosf(p_simplex[stride + i])) / 4.0f;
-		}
-
-		float c, d, dx, dy, dz;
-
-		for(int i = 0; i < p.protein_length - 2; i++){
-			for(int j = i + 2; j < p.protein_length; j++){
-				if(p.aminoacid_sequence[i] == 'A' && p.aminoacid_sequence[j] == 'A')
-					c = 1.0;
-				else if(p.aminoacid_sequence[i] == 'B' && p.aminoacid_sequence[j] == 'B')
-					c = 0.5;
-				else
-					c = -0.5;
-
-				dx = aminoacid_position[i] - aminoacid_position[j];
-				dy = aminoacid_position[i + p.protein_length] - aminoacid_position[j + p.protein_length];
-				dz = aminoacid_position[i + p.protein_length * 2] - aminoacid_position[j + p.protein_length * 2];
-				d = sqrtf( (dx * dx) + (dy * dy) + (dz * dz) );
-
-		p_objective_function[k].first = sum;
-		p_objective_function[k].second = k;
+	if(p.problem_type == AB_OFF_LATTICE){
+		calculateABOffLattice(p, problem_p, number_evalueted_vertexes,p_simplex, p_objective_function);
 	}
+
+
 }
 
 void nelderMead_centroid(NelderMead &p){
@@ -227,14 +148,14 @@ void nelderMead_replacement(NelderMead &p, float * p_new_vertex, std::pair<float
 
 }
 
-void nelderMead_update(NelderMead &p){
+void nelderMead_update(NelderMead &p, void * problem_parameters){
 
 	if(p.p_obj_reflection[0].first < p.p_objective_function[0].first){
 		
 		nelderMead_expansion(p);
 		printVertex(p.dimension, p.p_expansion, "Expansion");
 		
-		nelderMead_calculate(p, 1, p.p_expansion, p.p_obj_expansion);
+		nelderMead_calculate(p, problem_parameters, 1, p.p_expansion, p.p_obj_expansion);
 		printSingleObjFunction(p.dimension, p.p_obj_expansion, "Objective Function Expansion");
 
 
@@ -252,7 +173,7 @@ void nelderMead_update(NelderMead &p){
 	}else{
 		nelderMead_contraction(p);
 		printVertex(p.dimension, p.p_contraction, "Contraction");
-		nelderMead_calculate(p, 1, p.p_contraction, p.p_obj_contraction);
+		nelderMead_calculate(p, problem_parameters, 1, p.p_contraction, p.p_obj_contraction);
 		printSingleObjFunction(p.dimension, p.p_obj_contraction, "Objective Function Contraction");
 
 		if(p.p_obj_contraction[0].first < p.p_objective_function[p.dimension].first){
@@ -262,26 +183,15 @@ void nelderMead_update(NelderMead &p){
 			printSimplex(p.dimension, p.p_simplex, "Pre Shrink");
 			nelderMead_shrink(p);
 			printSimplex(p.dimension, p.p_simplex, "Shrink Case 3b (contraction worst than worst vertex)");
-			nelderMead_calculate(p, p.dimension + 1, p.p_simplex, p.p_objective_function);
+			nelderMead_calculate(p, problem_parameters, p.dimension + 1, p.p_simplex, p.p_objective_function);
 		}
 	}
 }
 
-void nelderMeaaaad(int dimension, int protein_length, float start[], const char aa_sequence[], int iterations_number){
+void nelderMead(NelderMead &parameters, void * problem_parameters){
 
-	NelderMead parameters;	
-	
-	ABOffLattice problem_parameters = (ABOffLattice) p_p;
-	problem_parameters.protein_length = protein_length;
-	problem_parameters.aminoacid_sequence = aa_sequence;
-	
-	parameters.iterations_number = iterations_number;
+	int dimension = parameters.dimension;
 
-	parameters.dimension = dimension;
-	parameters.protein_length = protein_length;
-
-	parameters.p_start = start;
-	
 	parameters.step = 1.0f;
 	parameters.reflection_coef = 1.0f;
 	parameters.expansion_coef = 1.0f;
@@ -318,7 +228,7 @@ void nelderMeaaaad(int dimension, int protein_length, float start[], const char 
 	nelderMead_initialize(parameters);
 	printSimplex(parameters.dimension, parameters.p_simplex, "Initialize");
 
-	nelderMead_calculate(parameters, dimension + 1, parameters.p_simplex, parameters.p_objective_function);
+	nelderMead_calculate(parameters, problem_parameters, dimension + 1, parameters.p_simplex, parameters.p_objective_function);
 	printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function");
 	std::sort(objective_function.begin(), objective_function.end());
 	printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function Sorted");
@@ -330,10 +240,10 @@ void nelderMeaaaad(int dimension, int protein_length, float start[], const char 
 
 		nelderMead_reflection(parameters);
 		printVertex(parameters.dimension, parameters.p_reflection, "Reflection");
-		nelderMead_calculate(parameters, 1, parameters.p_reflection, parameters.p_obj_reflection);
+		nelderMead_calculate(parameters, problem_parameters, 1, parameters.p_reflection, parameters.p_obj_reflection);
 		printSingleObjFunction(parameters.dimension, parameters.p_obj_reflection, "Objective Function Reflection");
 
-		nelderMead_update(parameters);
+		nelderMead_update(parameters, problem_parameters);
 
 		printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function");
 		std::sort(objective_function.begin(), objective_function.end());
