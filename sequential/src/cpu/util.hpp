@@ -28,8 +28,7 @@ enum ProblemEnum {
 
 enum BenchmarkProblemEnum {
     NONE,
-    SQUARE1,
-    SQUARE2,
+    SQUARE,
     SUM
 };
 

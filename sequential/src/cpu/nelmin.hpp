@@ -5,12 +5,12 @@
 #include "objectivefunctions.hpp"
 
 
-void nelderMead(NelderMead &parameters, void * problem_parameters);
+void nelderMead(NelderMead &parameters, void * problem_parameters );
 
 void printVertex(int dimension, float * p_vertex, const char * msg){
 	printf("%s:\n", msg);
 	for(int i = 0; i < dimension; i++){
-		printf("%.5f", p_vertex[i]);
+		printf("%.5f ", p_vertex[i]);
 	}
 	printf("\n\n");
 }
@@ -57,11 +57,21 @@ void nelderMead_initialize(NelderMead &p){
 
 void nelderMead_calculate(NelderMead & p, void * problem_p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
 
+
 	if(p.problem_type == AB_OFF_LATTICE){
 		calculateABOffLattice(p, problem_p, number_evalueted_vertexes,p_simplex, p_objective_function);
+	}else if(p.problem_type == BENCHMARK){
+
+		switch(p.benchmark_problem){
+			case SQUARE:
+				calculateSquare(p, number_evalueted_vertexes, p_simplex, p_objective_function);
+				break;
+			case SUM:
+				calculateAbsoluteSum(p, number_evalueted_vertexes, p_simplex, p_objective_function);
+				break;
+		}
 	}
-
-
+	
 }
 
 void nelderMead_centroid(NelderMead &p){
@@ -188,8 +198,7 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 	}
 }
 
-void nelderMead(NelderMead &parameters, void * problem_parameters){
-
+void nelderMead(NelderMead &parameters, void * problem_parameters = NULL){
 
 
 	int dimension = parameters.dimension;

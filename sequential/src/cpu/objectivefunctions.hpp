@@ -4,39 +4,45 @@
 
 #include "util.hpp"
 
-float square1(float * p_vertex){
+float calculateSquare(NelderMead &p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
 
-    float result = 0.0f;
+    float result;
 
-    for(int i = 0; i < 100; i++){
-        result += (p_vertex[i] * p_vertex[i]) / 100.0f;
-    }
+	for(int i = 0; i < number_evalueted_vertexes; i++){
+		
+		result = 0.0f;
+		int stride = i * p.dimension;
 
-    return result;
-}
+		for(int j = 0; j < p.dimension; j++){
+			result += (p.p_simplex[stride + j] * p.p_simplex[stride +j]) / 100.0f;
+		}
 
-float absolute_sum(float * p_vertex){
-
-    float result = 0.0f;
-
-    for(int i = 0; i < 100; i++){
-        result += abs(p_vertex[i]) / 100.0f;
-    }
+		p_objective_function[i].first = result;
+		p_objective_function[i].second = i;
+	}
 
     return result;
 }
 
-float square2(float * p_vertex){
+float calculateAbsoluteSum(NelderMead &p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
 
-    float result = 0.0f;
+    float result;
 
-    for(int i = 0 ; i < 200; i++){
-        result += (p_vertex[i] * p_vertex[i]) / 200;
-    }
+	for(int i = 0; i < number_evalueted_vertexes; i++){
+		
+		result = 0.0f;
+		int stride = i * p.dimension;
+
+		for(int j = 0; j < p.dimension; j++){
+			result += abs(p.p_simplex[stride + j]) / 100.0f;
+		}
+
+		p_objective_function[i].first = result;
+		p_objective_function[i].second = i;
+	}
 
     return result;
 }
-
 
 void calculateABOffLattice(NelderMead &p, void * problem_p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
 
