@@ -2,7 +2,7 @@
 #define NELMIN_H
 
 #include "util.hpp"
-#include "objectivefunctions.hpp"
+#include "objectiveFunctions.hpp"
 
 
 void nelderMead(NelderMead &parameters, void * problem_parameters );
@@ -36,7 +36,7 @@ void printObjFunction(int dimension, std::pair<float, int> * p_obj, const char *
 	printf("\n");
 }
 
-void printSingleObjFunction(int dimension, std::pair<float, int> * p_obj, const char * msg){
+void printSingleObjFunction(std::pair<float, int> * p_obj, const char * msg){
 	printf("%s:\n", msg);
 	printf("%2d. %.10f\n\n", p_obj[0].second + 1, p_obj[0].first);
 }
@@ -56,7 +56,6 @@ void nelderMead_initialize(NelderMead &p){
 }
 
 void nelderMead_calculate(NelderMead & p, void * problem_p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
-
 
 	if(p.problem_type == AB_OFF_LATTICE){
 		calculateABOffLattice(p, problem_p, number_evalueted_vertexes,p_simplex, p_objective_function);
@@ -166,7 +165,7 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 		printVertex(p.dimension, p.p_expansion, "Expansion");
 		
 		nelderMead_calculate(p, problem_parameters, 1, p.p_expansion, p.p_obj_expansion);
-		printSingleObjFunction(p.dimension, p.p_obj_expansion, "Objective Function Expansion");
+		printSingleObjFunction(p.p_obj_expansion, "Objective Function Expansion");
 
 
 		if(p.p_obj_expansion[0].first < p.p_objective_function[0].first){
@@ -184,7 +183,7 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 		nelderMead_contraction(p);
 		printVertex(p.dimension, p.p_contraction, "Contraction");
 		nelderMead_calculate(p, problem_parameters, 1, p.p_contraction, p.p_obj_contraction);
-		printSingleObjFunction(p.dimension, p.p_obj_contraction, "Objective Function Contraction");
+		printSingleObjFunction(p.p_obj_contraction, "Objective Function Contraction");
 
 		if(p.p_obj_contraction[0].first < p.p_objective_function[p.dimension].first){
 			nelderMead_replacement(p, p.p_contraction, p.p_obj_contraction);
@@ -199,7 +198,6 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 }
 
 void nelderMead(NelderMead &parameters, void * problem_parameters = NULL){
-
 
 	int dimension = parameters.dimension;
 
@@ -253,7 +251,7 @@ void nelderMead(NelderMead &parameters, void * problem_parameters = NULL){
 		nelderMead_reflection(parameters);
 		printVertex(parameters.dimension, parameters.p_reflection, "Reflection");
 		nelderMead_calculate(parameters, problem_parameters, 1, parameters.p_reflection, parameters.p_obj_reflection);
-		printSingleObjFunction(parameters.dimension, parameters.p_obj_reflection, "Objective Function Reflection");
+		printSingleObjFunction(parameters.p_obj_reflection, "Objective Function Reflection");
 
 		nelderMead_update(parameters, problem_parameters);
 
