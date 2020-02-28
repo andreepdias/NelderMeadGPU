@@ -4,8 +4,7 @@
 #include "util.hpp"
 #include "objectiveFunctions.hpp"
 
-
-void nelderMead(NelderMead &parameters, void * problem_parameters );
+std::pair<float, std::vector<float> > nelderMead(NelderMead &parameters, void * problem_parameters);
 
 void printVertex(int dimension, float * p_vertex, const char * msg){
 	printf("%s:\n", msg);
@@ -56,6 +55,8 @@ void nelderMead_initialize(NelderMead &p){
 }
 
 void nelderMead_calculate(NelderMead & p, void * problem_p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
+
+	p.evalutations_used++;
 
 	if(p.problem_type == AB_OFF_LATTICE){
 		calculateABOffLattice(p, problem_p, number_evalueted_vertexes,p_simplex, p_objective_function);
@@ -197,7 +198,7 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 	}
 }
 
-void nelderMead(NelderMead &parameters, void * problem_parameters = NULL){
+std::pair<float, std::vector<float> > nelderMead(NelderMead &parameters, void * problem_parameters = NULL){
 
 	int dimension = parameters.dimension;
 
@@ -206,6 +207,8 @@ void nelderMead(NelderMead &parameters, void * problem_parameters = NULL){
 	parameters.expansion_coef = 1.0f;
 	parameters.contraction_coef = 0.5f;
 	parameters.shrink_coef = 0.5f;
+
+	parameters.evalutations_used = 0;
 
 	std::vector<float> simplex(dimension * (dimension + 1));
 
@@ -261,6 +264,11 @@ void nelderMead(NelderMead &parameters, void * problem_parameters = NULL){
 
 		printf("------------------ END ITERATION %d ------------------\n\n", i + 1);
 	}
+
+	float best = objective_function[0].first;
+	std::vector<float> best_vertex(simplex.begin() + objective_function[0].second * dimension, simplex.begin() + objective_function[0].second * dimension + dimension);
+
+	return make_pair(best, best_vertex);
 
 }
  #endif

@@ -50,6 +50,8 @@ struct NelderMead{
 	float expansion_coef;
 	float contraction_coef;
 	float shrink_coef;
+
+	int evalutations_used;
 	
 	float * p_start;
 

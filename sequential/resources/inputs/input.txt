@@ -1,4 +1,5 @@
 BENCHMARK
 SUM
 5
-1
+100
+100

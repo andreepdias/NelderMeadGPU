@@ -117,7 +117,7 @@ __global__ void nelderMead_update(int dimension, float expansion_coef, float con
 	}
 }
 
-void nelderMead(NelderMead &parameters, void * h_problem_parameters = NULL, void * d_problem_parameters = NULL){
+std::pair<float, std::vector<float> >  nelderMead(NelderMead &parameters, void * h_problem_parameters = NULL, void * d_problem_parameters = NULL){
 
 	int dimension = parameters.dimension;
 
@@ -126,6 +126,8 @@ void nelderMead(NelderMead &parameters, void * h_problem_parameters = NULL, void
 	parameters.expansion_coef = 1.0f;
 	parameters.contraction_coef = 0.5f;
 	parameters.shrink_coef = 0.5f;
+
+	parameters.evaluations_used = 0;
 	
 	thrust::device_vector<float> d_start(dimension);
 	
@@ -208,6 +210,15 @@ void nelderMead(NelderMead &parameters, void * h_problem_parameters = NULL, void
 		
 		printf("------------------ END ITERATION %d ------------------\n\n", i + 1);
 	}
+
+	float best = d_objective_function[0];
+	std::vector<float> best_vertex(dimension);
+
+	for(int i = 0; i < dimension; i++){
+		best_vertex[i] = d_simplex[d_indexes[0] * dimension + i];
+	}
+	
+	return make_pair(best, best_vertex);
 }
 
 #endif

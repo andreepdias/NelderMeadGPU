@@ -60,6 +60,8 @@ struct NelderMead{
 
 	int dimension;
 
+    int evaluations_used;
+
 	float step;
 	float reflection_coef;
 	float expansion_coef;

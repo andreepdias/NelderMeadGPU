@@ -1,6 +1,6 @@
 
 #include "util.cuh"
-#include "nelderMeadMulti.cuh"
+#include "nelderMeadSingle.cuh"
 
 
 int main(){
@@ -16,7 +16,7 @@ int main(){
 
     if(s == "BENCHMARK"){
         parameters.problem_type = BENCHMARK;
-
+        
         input_file >> s;
 
         if(s == "SQUARE"){
@@ -33,12 +33,14 @@ int main(){
         printf("O tipo do problema nao foi especifiado. Tente:\nBENCHMARK ou ABOFFLATTICE.\n");
         return 1;
     }
+    
+    int dimension, iterations_number, executions_number;
 
     if(parameters.problem_type == BENCHMARK){
 
-        int dimension, iterations_number;
         input_file >> dimension;
         input_file >> iterations_number;
+        input_file >> executions_number;
 
         parameters.iterations_number = iterations_number;
 
@@ -51,20 +53,37 @@ int main(){
                 break;
         }
 
-        std::vector<float> start_point(parameters.dimension);
-
         std::string dimension_file = (parameters.dimension < 100) ? std::to_string(100) : std::to_string(parameters.dimension);
 
         std::string path = "resources/data_inputs/data" + dimension_file + "dimension.txt";
         std::ifstream input_data(path.c_str())        ;
 
-        for(int i = 0; i < parameters.dimension; i++){
-            input_data >> start_point[i];
+        std::vector< std::vector<float> > start_point(executions_number, std::vector<float> (parameters.dimension));
+
+        for(int i = 0; i < executions_number; i++){
+            for(int j = 0; j < parameters.dimension; j++){
+                input_data >> start_point[i][j];
+            }
         }
 
-        parameters.p_start = &start_point[0];
+        std::vector<std::pair<float, std::vector<float> > > results(executions_number);
 
-        //nelderMead(parameters);
+        for(int i = 0; i < executions_number; i++){
+            parameters.p_start = &start_point[i][0];
+
+            results[i] = nelderMead(parameters);
+
+            printf("Execucao %d: %.7f\n", i + 1, results[i].first);
+        }
+
+        float mean = 0.0f;
+        for(int i = 0; i < executions_number; i++){
+            mean += results[i].first;
+        }
+        mean /= executions_number;
+
+        printf("\nMedia: %.7f\n", mean);
+
 
     }else if(parameters.problem_type == AB_OFF_LATTICE){
 
@@ -73,9 +92,8 @@ int main(){
         std::string protein_name, protein_chain;
         std::vector<float> angles;
 
-        int iterations_number;
-
         input_file >> iterations_number;
+        input_file >> executions_number;
         input_file >> protein_name;
         input_file >> protein_chain;
 
@@ -100,7 +118,14 @@ int main(){
         strcpy(aa_sequence, protein_chain.c_str());
         cudaMemcpyToSymbol(aminoacid_sequence, (void *) aa_sequence, 150 * sizeof(char));
 
-        nelderMead( parameters, (void*) parametersAB, (void*) d_parametersAB);
+        std::pair<float, std::vector<float> > result = nelderMead(parameters, (void*) parametersAB, (void*) d_parametersAB );
+
+        printf("Best: %.7f\nVertex: ", result.first);
+
+        for(int i = 0; i < parameters.dimension; i++){
+            printf("%.7f ", result.second[i]);
+        }
+
         //nelderMead(parameters, (void*) parametersAB);
 
 
