@@ -56,8 +56,6 @@ void nelderMead_initialize(NelderMead &p){
 
 void nelderMead_calculate(NelderMead & p, void * problem_p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
 
-	p.evalutations_used++;
-
 	if(p.problem_type == AB_OFF_LATTICE){
 		calculateABOffLattice(p, problem_p, number_evalueted_vertexes,p_simplex, p_objective_function);
 	}else if(p.problem_type == BENCHMARK){
@@ -123,7 +121,7 @@ void nelderMead_contraction_secondCase(NelderMead &p){
 void nelderMead_contraction(NelderMead &p){
 
 	printf("Reflection: %.5f, Worst: %.5f\n", p.p_obj_reflection[0].first, p.p_objective_function[p.dimension].first);
-	if(p.p_obj_reflection[0].first < p.p_objective_function[p.dimension].first or true){
+	if(p.p_obj_reflection[0].first < p.p_objective_function[p.dimension].first){
 		printf("First case contraction\n");
 		nelderMead_contraction_firstCase(p);
 	}else{
@@ -158,19 +156,26 @@ void nelderMead_replacement(NelderMead &p, float * p_new_vertex, std::pair<float
 
 }
 
+void printEvaluationsUpdate(NelderMead &p, int add){
+
+	printf("*-*Total evaluations during update: %d. Right now adding: %d\n", p.evalutations_used, add);
+
+}
+
 void nelderMead_update(NelderMead &p, void * problem_parameters){
 
-	if(p.p_obj_reflection[0].first < p.p_objective_function[0].first ){
+	if(p.p_obj_reflection[0].first < p.p_objective_function[0].first){
 		
 		nelderMead_expansion(p);
 		printVertex(p.dimension, p.p_expansion, "Expansion");
 		
 		nelderMead_calculate(p, problem_parameters, 1, p.p_expansion, p.p_obj_expansion);
 		p.evalutations_used += 1;
+		printEvaluationsUpdate(p, 1);
 		printSingleObjFunction(p.p_obj_expansion, "Objective Function Expansion");
 
 
-		if(p.p_obj_expansion[0].first < p.p_objective_function[0].first ){
+		if(p.p_obj_expansion[0].first < p.p_objective_function[0].first){
 			nelderMead_replacement(p, p.p_expansion, p.p_obj_expansion);
 			printSimplex(p.dimension, p.p_simplex, "Case 1a (expansion better than best vertex)");
 		}else{
@@ -178,7 +183,7 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 			printSimplex(p.dimension, p.p_simplex, "Case 1b (reflection better than best vertex)");
 		}
 
-	}else if(p.p_obj_reflection[0].first < p.p_objective_function[p.dimension - 1].first and false){
+	}else if(p.p_obj_reflection[0].first < p.p_objective_function[p.dimension - 1].first){
 		nelderMead_replacement(p, p.p_reflection, p.p_obj_reflection);
 		printSimplex(p.dimension, p.p_simplex, "Case 2 (reflection better than second worst vertex)");
 	}else{
@@ -186,6 +191,7 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 		printVertex(p.dimension, p.p_contraction, "Contraction");
 		nelderMead_calculate(p, problem_parameters, 1, p.p_contraction, p.p_obj_contraction);
 		p.evalutations_used += 1;
+		printEvaluationsUpdate(p, 1);
 		printSingleObjFunction(p.p_obj_contraction, "Objective Function Contraction");
 
 		if(p.p_obj_contraction[0].first < p.p_objective_function[p.dimension].first){
@@ -197,8 +203,17 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 			printSimplex(p.dimension, p.p_simplex, "Shrink Case 3b (contraction worst than worst vertex)");
 			nelderMead_calculate(p, problem_parameters, p.dimension + 1, p.p_simplex, p.p_objective_function);
 			p.evalutations_used += p.dimension + 1;
+			printEvaluationsUpdate(p, p.dimension + 1);
+
+			
 		}
 	}
+}
+
+void printEvaluationsHost(int total, int add){
+
+	printf("***Total evaluations: %d. Now adding: %d\n", total, add);
+
 }
 
 NelderMeadResult nelderMead(NelderMead &parameters, void * problem_parameters = NULL){
@@ -246,6 +261,7 @@ NelderMeadResult nelderMead(NelderMead &parameters, void * problem_parameters = 
 
 	nelderMead_calculate(parameters, problem_parameters, dimension + 1, parameters.p_simplex, parameters.p_objective_function);
 	parameters.evalutations_used += dimension + 1;
+	printEvaluationsHost(parameters.evalutations_used, dimension + 1);
 	printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function");
 	std::sort(objective_function.begin(), objective_function.end());
 	printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function Sorted");
@@ -259,9 +275,11 @@ NelderMeadResult nelderMead(NelderMead &parameters, void * problem_parameters = 
 		printVertex(parameters.dimension, parameters.p_reflection, "Reflection");
 		nelderMead_calculate(parameters, problem_parameters, 1, parameters.p_reflection, parameters.p_obj_reflection);
 		parameters.evalutations_used += 1;
+		printEvaluationsHost(parameters.evalutations_used, 1);
 		printSingleObjFunction(parameters.p_obj_reflection, "Objective Function Reflection");
 
 		nelderMead_update(parameters, problem_parameters);
+		printEvaluationsHost(parameters.evalutations_used, 0);
 
 		printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function");
 		std::sort(objective_function.begin(), objective_function.end());

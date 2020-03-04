@@ -77,6 +77,15 @@ __device__ void printReplacement(const char * msg, int blockId){
 	printf("Replacement [%d]: %s.\n", blockId, msg);
 }
 
+__device__ void printEvaluationsDevice(int * p_evaluations, int add, int p = 0){
+	printf("*-*Total evaluations during update[%d]: %d. Right now adding: %d\n", p, p_evaluations[0], add);
+}
+
+
+void printEvaluationsHost(int total, int add){
+	printf("***Total evaluations: %d. Now adding: %d\n", total, add);
+}
+
 /* ------------------------- END PRINTING------------------------- */
 
 
