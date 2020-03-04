@@ -33,13 +33,6 @@ int main(){
     
     printf("%d\n", sum);
     
-    d_evaluations[0]++;
-    p_evaluations[0]++;
-
-    thrust::host_vector<int> h_evaluations(p);
-    h_evaluations = d_evaluations;
-
-    printf("%d\n", h_evaluations[0]);
 
 
 }
