@@ -4,14 +4,18 @@
 #include "util.cuh"
 #include "objectiveFunctions.cuh"
 
-void printVertexHost(int dimension, thrust::device_vector<float> &d_vertex, const char * msg){
+void printVertexHost(int dimension, thrust::device_vector<float> &d_vertex, const char * msg, int p = 1){
 	thrust::host_vector<float> h_vertex = d_vertex;
 
-	printf("%s:\n", msg);
-	for(int i = 0 ; i < dimension; i++){
-		printf("%.5f ", h_vertex[i]);
+	for(int k = 0; k < p; k++){
+		int stride = dimension * k;		
+		printf("%s [%d]: ", msg, k);
+		for(int i = 0 ; i < dimension; i++){
+			printf("%.5f ", h_vertex[i + stride]);
+		}
+		printf("\n");
 	}
-	printf("\n\n");
+	printf("\n");
 }
 
 void printSimplexHost(int dimension, thrust::device_vector<float> &d_simplex, const char * msg){
@@ -40,11 +44,15 @@ void printObjFunctionHost(int dimension, thrust::device_vector<float> &d_objecti
 	printf("\n");
 }
 
-void printSingleObjFunctionHost(int dimension, thrust::device_vector<float> &d_objective_function, const char * msg){
+void printSingleObjFunctionHost(int dimension, thrust::device_vector<float> &d_objective_function, const char * msg, int p = 1){
 	thrust::host_vector<float> h_objective_function = d_objective_function;
 
 	printf("%s:\n", msg);
-	printf("%2d. %.10f\n\n", 1, h_objective_function[0]);
+	for(int k = 0; k < p; k++){
+		printf("[%d] %.10f\n", k, h_objective_function[k]);
+	}
+	printf("\n");
+
 }
 
 __device__ void printVertexDevice(int dimension, float * p_vertex, const char * msg, int processor = 0){
@@ -102,11 +110,11 @@ __global__ void nelderMead_initialize(int dimension, float step, float * start, 
 	}
 }
 
-__global__ void nelderMead_centroid(int dimension, float * p_simplex, uint * p_indexes, float * p_centroid){
+__global__ void nelderMead_centroid(int dimension, float * p_simplex, uint * p_indexes, float * p_centroid, int p = 1){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
-	int threadsMax = dimension;
+	int threadsMax = dimension + 1 - p;
 
 	int index = p_indexes[threadId];
 	int stride = index * dimension;
