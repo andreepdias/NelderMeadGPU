@@ -204,10 +204,6 @@ void nelderMead_calculate_from_host(int blocks, NelderMead &p, void * h_problem_
 
 }
 
-__global__ void nelderMead_calculate(int dimension, int protein_length, float * p_simplex, float * p_objective_function, bool is_specific_block = false, int specific_block = 0){
-
-    
-}
 
 __global__ void nelderMead_shrink(int dimension, float shrink_coef, float * p_simplex, uint * p_indexes){
 

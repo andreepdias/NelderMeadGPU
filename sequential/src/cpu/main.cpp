@@ -66,19 +66,19 @@ int main(){
             }
         }
 
-        std::vector<std::pair<float, std::vector<float> > > results(executions_number);
+        std::vector<NelderMeadResult> results(executions_number);
 
         for(int i = 0; i < executions_number; i++){
             parameters.p_start = &start_point[i][0];
 
             results[i] = nelderMead(parameters);
 
-            printf("Execucao %d: %.7f\n", i + 1, results[i].first);
+            printf("Execucao %d: %.7f\n", i + 1, results[i].best);
         }
 
         float mean = 0.0f;
         for(int i = 0; i < executions_number; i++){
-            mean += results[i].first;
+            mean += results[i].best;
         }
         mean /= executions_number;
 
@@ -109,13 +109,14 @@ int main(){
         parameters.dimension = angles.size();
         parameters.p_start = &angles[0];
 
-        std::pair<float, std::vector<float> > result = nelderMead(parameters, (void*) parametersAB );
+        NelderMeadResult result = nelderMead(parameters, (void*) parametersAB );
 
-        printf("Best: %.7f\nVertex: ", result.first);
+        printf("Best: %.7f\nVertex: ", result.best);
 
         for(int i = 0; i < parameters.dimension; i++){
-            printf("%.7f ", result.second[i]);
+            printf("%.7f ", result.best_vertex[i]);
         }
+        printf("\nEvaluations: %d\n", result.evaluations_used);
     }
 
     return 0;

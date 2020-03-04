@@ -11,6 +11,8 @@
 #include <thrust/extrema.h>
 #include <thrust/execution_policy.h>
 #include <thrust/logical.h>
+#include <thrust/fill.h>
+
 
 #include <cooperative_groups.h>
 
@@ -73,6 +75,13 @@ struct NelderMead{
 	ProblemEnum problem_type;
 	BenchmarkProblemEnum benchmark_problem;
 
+};
+
+struct NelderMeadResult{
+
+    float best;    
+    std::vector<float> best_vertex;
+    int evaluations_used;
 };
 
 #endif

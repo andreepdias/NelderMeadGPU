@@ -4,7 +4,7 @@
 #include "util.hpp"
 #include "objectiveFunctions.hpp"
 
-std::pair<float, std::vector<float> > nelderMead(NelderMead &parameters, void * problem_parameters);
+NelderMeadResult nelderMead(NelderMead &parameters, void * problem_parameters);
 
 void printVertex(int dimension, float * p_vertex, const char * msg){
 	printf("%s:\n", msg);
@@ -166,6 +166,7 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 		printVertex(p.dimension, p.p_expansion, "Expansion");
 		
 		nelderMead_calculate(p, problem_parameters, 1, p.p_expansion, p.p_obj_expansion);
+		p.evalutations_used += 1;
 		printSingleObjFunction(p.p_obj_expansion, "Objective Function Expansion");
 
 
@@ -184,6 +185,7 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 		nelderMead_contraction(p);
 		printVertex(p.dimension, p.p_contraction, "Contraction");
 		nelderMead_calculate(p, problem_parameters, 1, p.p_contraction, p.p_obj_contraction);
+		p.evalutations_used += 1;
 		printSingleObjFunction(p.p_obj_contraction, "Objective Function Contraction");
 
 		if(p.p_obj_contraction[0].first < p.p_objective_function[p.dimension].first){
@@ -194,11 +196,12 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 			nelderMead_shrink(p);
 			printSimplex(p.dimension, p.p_simplex, "Shrink Case 3b (contraction worst than worst vertex)");
 			nelderMead_calculate(p, problem_parameters, p.dimension + 1, p.p_simplex, p.p_objective_function);
+			p.evalutations_used += p.dimension + 1;
 		}
 	}
 }
 
-std::pair<float, std::vector<float> > nelderMead(NelderMead &parameters, void * problem_parameters = NULL){
+NelderMeadResult nelderMead(NelderMead &parameters, void * problem_parameters = NULL){
 
 	int dimension = parameters.dimension;
 
@@ -242,6 +245,7 @@ std::pair<float, std::vector<float> > nelderMead(NelderMead &parameters, void * 
 	printSimplex(parameters.dimension, parameters.p_simplex, "Initialize");
 
 	nelderMead_calculate(parameters, problem_parameters, dimension + 1, parameters.p_simplex, parameters.p_objective_function);
+	parameters.evalutations_used += dimension + 1;
 	printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function");
 	std::sort(objective_function.begin(), objective_function.end());
 	printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function Sorted");
@@ -254,6 +258,7 @@ std::pair<float, std::vector<float> > nelderMead(NelderMead &parameters, void * 
 		nelderMead_reflection(parameters);
 		printVertex(parameters.dimension, parameters.p_reflection, "Reflection");
 		nelderMead_calculate(parameters, problem_parameters, 1, parameters.p_reflection, parameters.p_obj_reflection);
+		parameters.evalutations_used += 1;
 		printSingleObjFunction(parameters.p_obj_reflection, "Objective Function Reflection");
 
 		nelderMead_update(parameters, problem_parameters);
@@ -265,10 +270,14 @@ std::pair<float, std::vector<float> > nelderMead(NelderMead &parameters, void * 
 		printf("------------------ END ITERATION %d ------------------\n\n", i + 1);
 	}
 
-	float best = objective_function[0].first;
-	std::vector<float> best_vertex(simplex.begin() + objective_function[0].second * dimension, simplex.begin() + objective_function[0].second * dimension + dimension);
+	NelderMeadResult result;
 
-	return make_pair(best, best_vertex);
+	result.best = objective_function[0].first;
+	std::vector<float> best_vertex(simplex.begin() + objective_function[0].second * dimension, simplex.begin() + objective_function[0].second * dimension + dimension);
+	result.best_vertex = best_vertex;
+	result.evaluations_used = parameters.evalutations_used;
+
+	return result;
 
 }
  #endif

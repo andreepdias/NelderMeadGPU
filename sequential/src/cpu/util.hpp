@@ -72,4 +72,11 @@ struct NelderMead{
 
 };
 
+struct NelderMeadResult{
+
+    float best;    
+    std::vector<float> best_vertex;
+    int evaluations_used;
+};
+
 #endif

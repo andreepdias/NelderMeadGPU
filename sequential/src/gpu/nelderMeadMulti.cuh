@@ -53,7 +53,7 @@ __global__ void nelderMead_replacement(int processor, int dimension, float * p_s
 	}
 }
 
-__global__ void nelderMead_update(int p, int dimension, float expansion_coef, float contraction_coef, float shrink_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, float * p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction, bool * p_need_shrink, void * d_problem_parameters, ProblemEnum problem_type, BenchmarkProblemEnum benchmark_problem){
+__global__ void nelderMead_update(int p, int dimension, int * p_evaluations, float expansion_coef, float contraction_coef, float shrink_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, float * p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction, bool * p_need_shrink, void * d_problem_parameters, ProblemEnum problem_type, BenchmarkProblemEnum benchmark_problem){
 
 	int blockId = blockIdx.x;
 	float worst = p_objective_function[dimension - blockId];
@@ -71,6 +71,7 @@ __global__ void nelderMead_update(int p, int dimension, float expansion_coef, fl
         /*p*/printVertexDevice(dimension, p_expansion, "Expansion", blockId);
 		
 		nelderMead_calculate_from_device(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_expansion, p_obj_expansion, true, blockId);
+		p_evaluations[blockId] += 1;
         /*p*/printSingleObjFunctionDevice(p_obj_expansion, "Objective Function Expansion", blockId);
 		
 		if(p_obj_expansion[blockId] < p_objective_function[0]){
@@ -103,6 +104,7 @@ __global__ void nelderMead_update(int p, int dimension, float expansion_coef, fl
         /*p*/printVertexDevice(dimension, p_expansion, "Contraction", blockId);
 
 		nelderMead_calculate_from_device(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_contraction, p_obj_contraction, true, blockId);
+		p_evaluations[blockId] += 1;
         /*p*/printSingleObjFunctionDevice(p_obj_expansion, "Objective Function Contraction", blockId);
 
 
@@ -125,7 +127,7 @@ __global__ void nelderMead_update(int p, int dimension, float expansion_coef, fl
 	}
 }
 
-std::pair<float, std::vector<float> >  nelderMead(NelderMead &parameters, void * h_problem_parameters = NULL, void * d_problem_parameters = NULL){
+NelderMeadResult nelderMead(NelderMead &parameters, void * h_problem_parameters = NULL, void * d_problem_parameters = NULL){
 
 	int p = 1;
 
@@ -158,6 +160,8 @@ std::pair<float, std::vector<float> >  nelderMead(NelderMead &parameters, void *
 
 	thrust::device_vector<bool>  d_need_shrink(p);
 
+	thrust::device_vector<int> d_evaluations(p);
+
 	float * p_start 			 		   = thrust::raw_pointer_cast(&d_start[0]);
 	
 //	float * p_aminoacid_position 		   = thrust::raw_pointer_cast(&d_aminoacid_position[0]);
@@ -177,6 +181,10 @@ std::pair<float, std::vector<float> >  nelderMead(NelderMead &parameters, void *
 	float * p_obj_contraction 			   = thrust::raw_pointer_cast(&d_obj_contraction[0]);
 
 	bool * p_need_shrink 				   = thrust::raw_pointer_cast(&d_need_shrink[0]);
+
+	int * p_evaluations 				   = thrust::raw_pointer_cast(&d_evaluations[0]);
+
+	int function_evaluations = 0;
 	
 	thrust::copy(parameters.p_start, parameters.p_start + dimension, d_start.begin());
 
@@ -188,8 +196,8 @@ std::pair<float, std::vector<float> >  nelderMead(NelderMead &parameters, void *
 	/*p*/printSimplexHost(dimension, d_simplex, "Initialize");
 
 	thrust::sequence(d_indexes.begin(), d_indexes.end());
-	
 	nelderMead_calculate_from_host(dimension + 1, parameters, d_problem_parameters, p_simplex, p_objective_function);
+	function_evaluations += dimension + 1;
 	
 	/*p*/printObjFunctionHost(dimension, d_objective_function, d_indexes, "Objective Function");
 	
@@ -206,11 +214,14 @@ std::pair<float, std::vector<float> >  nelderMead(NelderMead &parameters, void *
 		/*p*/printVertexHost(dimension, d_reflection, "Reflection");
 		
 		nelderMead_calculate_from_host(p, parameters, d_problem_parameters, p_reflection, p_obj_reflection);
+		function_evaluations += 1;
 		/*p*/printSingleObjFunctionHost(dimension, d_obj_reflection, "Objective Function Reflection");
 		
 		
-		nelderMead_update<<< p, 1 >>>(p, dimension, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, p_need_shrink, d_problem_parameters, parameters.problem_type, parameters.benchmark_problem);
-		cudaDeviceSynchronize();
+		nelderMead_update<<< p, 1 >>>(p, dimension, p_evaluations, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, p_need_shrink, d_problem_parameters, parameters.problem_type, parameters.benchmark_problem);		cudaDeviceSynchronize();
+
+		function_evaluations += thrust::reduce(d_evaluations.begin(), d_evaluations.end(), 0, thrust::plus<int>());
+
         /*p*/printSimplexHost(dimension, d_simplex, "Replacement");
 		
 		bool need_shrink = thrust::any_of(d_need_shrink.begin(), d_need_shrink.end(), thrust::identity<bool>());
@@ -223,6 +234,7 @@ std::pair<float, std::vector<float> >  nelderMead(NelderMead &parameters, void *
 
 			thrust::sequence(d_indexes.begin(), d_indexes.end());
 			nelderMead_calculate_from_host(dimension + 1, parameters, d_problem_parameters, p_simplex, p_objective_function);
+			function_evaluations += dimension + 1;
 		}
 		
 		/*p*/printObjFunctionHost(dimension, d_objective_function, d_indexes, "Objective Function");
@@ -232,14 +244,17 @@ std::pair<float, std::vector<float> >  nelderMead(NelderMead &parameters, void *
 		/*p*/printf("------------------ END ITERATION %d ------------------\n\n", i + 1);
 	}
 
-	float best = d_objective_function[0];
-	std::vector<float> best_vertex(dimension);
+	NelderMeadResult result;
+
+	result.best = d_objective_function[0];
+	result.best_vertex.resize(dimension);
+	result.evaluations_used = function_evaluations;
 
 	for(int i = 0; i < dimension; i++){
-		best_vertex[i] = d_simplex[d_indexes[0] * dimension + i];
+		result.best_vertex[i] = d_simplex[d_indexes[0] * dimension + i];
 	}
 	
-	return make_pair(best, best_vertex);
+	return result;
 }
 
 #endif

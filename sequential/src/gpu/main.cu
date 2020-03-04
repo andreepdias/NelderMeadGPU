@@ -2,8 +2,7 @@
 #include "util.cuh"
 #include "nelderMeadSingle.cuh"
 
-
-int main(){
+int main() {
 
     NelderMead parameters;
     parameters.benchmark_problem = NONE;
@@ -66,19 +65,19 @@ int main(){
             }
         }
 
-        std::vector<std::pair<float, std::vector<float> > > results(executions_number);
+        std::vector<NelderMeadResult> results(executions_number);
 
         for(int i = 0; i < executions_number; i++){
             parameters.p_start = &start_point[i][0];
 
             results[i] = nelderMead(parameters);
 
-            printf("Execucao %d: %.7f\n", i + 1, results[i].first);
+            printf("Execucao %d: %.7f\n", i + 1, results[i].best);
         }
 
         float mean = 0.0f;
         for(int i = 0; i < executions_number; i++){
-            mean += results[i].first;
+            mean += results[i].best;
         }
         mean /= executions_number;
 
@@ -118,16 +117,13 @@ int main(){
         strcpy(aa_sequence, protein_chain.c_str());
         cudaMemcpyToSymbol(aminoacid_sequence, (void *) aa_sequence, 150 * sizeof(char));
 
-        std::pair<float, std::vector<float> > result = nelderMead(parameters, (void*) parametersAB, (void*) d_parametersAB );
+        NelderMeadResult result = nelderMead(parameters, (void*) parametersAB, (void*) d_parametersAB );
 
-        printf("Best: %.7f\nVertex: ", result.first);
+        printf("Best: %.7f\nVertex: ", result.best);
 
         for(int i = 0; i < parameters.dimension; i++){
-            printf("%.7f ", result.second[i]);
+            printf("%.7f ", result.best_vertex[i]);
         }
-
-        //nelderMead(parameters, (void*) parametersAB);
-
 
     }
 

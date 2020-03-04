@@ -1,4 +1,5 @@
 #include <iostream>
+#include <thrust/device_vector.h>
 
 
 __device__ void calculate(int * p_evaluations){
@@ -20,9 +21,9 @@ int main(){
 
     int p = 5;
 
-    thurst::device_vector<int> d_evaluations(p);
+    thrust::device_vector<int> d_evaluations(p);
 
-    int * p_evaluations = thrust::raw_ponter_cast(&d_evaluations[0]);
+    int * p_evaluations = thrust::raw_pointer_cast(&d_evaluations[0]);
 
     update<<< p, 1 >>> (p_evaluations);
     cudaDeviceSynchronize();
@@ -32,6 +33,13 @@ int main(){
     
     printf("%d\n", sum);
     
+    d_evaluations[0]++;
+    p_evaluations[0]++;
+
+    thrust::host_vector<int> h_evaluations(p);
+    h_evaluations = d_evaluations;
+
+    printf("%d\n", h_evaluations[0]);
 
 
 }
