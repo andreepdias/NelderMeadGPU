@@ -123,7 +123,7 @@ void nelderMead_contraction_secondCase(NelderMead &p){
 void nelderMead_contraction(NelderMead &p){
 
 	printf("Reflection: %.5f, Worst: %.5f\n", p.p_obj_reflection[0].first, p.p_objective_function[p.dimension].first);
-	if(p.p_obj_reflection[0].first < p.p_objective_function[p.dimension].first){
+	if(p.p_obj_reflection[0].first < p.p_objective_function[p.dimension].first or true){
 		printf("First case contraction\n");
 		nelderMead_contraction_firstCase(p);
 	}else{
@@ -160,7 +160,7 @@ void nelderMead_replacement(NelderMead &p, float * p_new_vertex, std::pair<float
 
 void nelderMead_update(NelderMead &p, void * problem_parameters){
 
-	if(p.p_obj_reflection[0].first < p.p_objective_function[0].first){
+	if(p.p_obj_reflection[0].first < p.p_objective_function[0].first ){
 		
 		nelderMead_expansion(p);
 		printVertex(p.dimension, p.p_expansion, "Expansion");
@@ -170,7 +170,7 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 		printSingleObjFunction(p.p_obj_expansion, "Objective Function Expansion");
 
 
-		if(p.p_obj_expansion[0].first < p.p_objective_function[0].first){
+		if(p.p_obj_expansion[0].first < p.p_objective_function[0].first ){
 			nelderMead_replacement(p, p.p_expansion, p.p_obj_expansion);
 			printSimplex(p.dimension, p.p_simplex, "Case 1a (expansion better than best vertex)");
 		}else{
@@ -178,7 +178,7 @@ void nelderMead_update(NelderMead &p, void * problem_parameters){
 			printSimplex(p.dimension, p.p_simplex, "Case 1b (reflection better than best vertex)");
 		}
 
-	}else if(p.p_obj_reflection[0].first < p.p_objective_function[p.dimension - 1].first){
+	}else if(p.p_obj_reflection[0].first < p.p_objective_function[p.dimension - 1].first and false){
 		nelderMead_replacement(p, p.p_reflection, p.p_obj_reflection);
 		printSimplex(p.dimension, p.p_simplex, "Case 2 (reflection better than second worst vertex)");
 	}else{

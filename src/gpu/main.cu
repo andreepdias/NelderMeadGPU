@@ -124,6 +124,7 @@ int main() {
         for(int i = 0; i < parameters.dimension; i++){
             printf("%.7f ", result.best_vertex[i]);
         }
+        printf("\nEvaluations: %d\n", result.evaluations_used);
 
     }
 

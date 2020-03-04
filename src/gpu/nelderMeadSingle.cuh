@@ -63,7 +63,7 @@ __global__ void nelderMead_update(int dimension, int * p_evaluations, float expa
 
 	int numberBlocks = ceil(dimension / 32.0f);
 
-	if(p_obj_reflection[0] < p_objective_function[0] or true){
+	if(p_obj_reflection[0] < p_objective_function[0]){
 
 		nelderMead_expansion<<< numberBlocks, 32 >>>(dimension, expansion_coef, p_simplex, p_centroid, p_reflection, p_expansion);
 		cudaDeviceSynchronize();
@@ -84,26 +84,26 @@ __global__ void nelderMead_update(int dimension, int * p_evaluations, float expa
 			/*p*/printSimplexDevice(dimension, p_simplex, "Replacement, Case 1b (reflection better than best vertex)");
 		}
 		
-	}else if(p_obj_reflection[0] < p_objective_function[dimension - 1]){
+	}else if(p_obj_reflection[0] < p_objective_function[dimension - 1] and false){
 		nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
 		cudaDeviceSynchronize();
 		/*p*/printSimplexDevice(dimension, p_simplex, "Replacement, Case 2 (reflection better than second worst vertex)");
 	}else{
 		if(p_obj_reflection[0] < p_objective_function[dimension] or true){
-			printf("---First case contraction---\n");
+			/*p*/printf("---First case contraction---\n");
 			nelderMead_contraction<<< numberBlocks, 32 >>>(dimension, contraction_coef, p_centroid, p_reflection, 0, p_contraction);
 			cudaDeviceSynchronize();
 		}else{
-			printf("---Second case contraction---\n");
+			/*p*/printf("---Second case contraction---\n");
 			nelderMead_contraction<<< numberBlocks, 32 >>>(dimension, contraction_coef, p_centroid, p_simplex, p_indexes[dimension] * dimension, p_contraction);
 			cudaDeviceSynchronize();
 		}
-		/*p*/printVertexDevice(dimension, p_expansion, "Contraction");
+		/*p*/printVertexDevice(dimension, p_contraction, "Contraction");
 		
 		nelderMead_calculate_from_device(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_contraction, p_obj_contraction);
 		p_evaluations[0] += 1;
 		cudaDeviceSynchronize();
-		/*p*/printSingleObjFunctionDevice(p_obj_expansion, "Objective Function Contraction");
+		/*p*/printSingleObjFunctionDevice(p_obj_contraction, "Objective Function Contraction");
 		
 		
 		if(p_obj_contraction[0] < p_objective_function[dimension]){

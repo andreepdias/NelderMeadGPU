@@ -77,6 +77,9 @@ __device__ void printReplacement(const char * msg, int blockId){
 	printf("Replacement [%d]: %s.\n", blockId, msg);
 }
 
+/* ------------------------- END PRINTING------------------------- */
+
+
 __global__ void nelderMead_initialize(int dimension, float step, float * start, float * p_simplex){
 
     int blockId = blockIdx.x;
