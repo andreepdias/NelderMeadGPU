@@ -120,11 +120,12 @@ __global__ void nelderMead_centroid(int dimension, float * p_simplex, uint * p_i
 	int threadId = threadIdx.x;
 	int threadsMax = dimension + 1 - p;
 
+	
 	int index = p_indexes[threadId];
 	int stride = index * dimension;
-
+	
 	float value = p_simplex[stride + blockId];
-
+	
 	__syncthreads();
 
 	__shared__ float threads_sum [256];
@@ -163,11 +164,14 @@ __global__ void nelderMead_centroid(int dimension, float * p_simplex, uint * p_i
 		threads_sum[threadId] += threads_sum[threadId + 2];
 	}  
 	__syncthreads();
+
+	if(threadId < 1 && threadId + 1 < threadsMax){
+		threads_sum[threadId] += threads_sum[threadId + 1];
+	}  
+	__syncthreads();
 	
 	if(threadId == 0){
-		threads_sum[threadId] += threads_sum[threadId + 1];
-  
-	  	p_centroid[blockId] = threads_sum[0] / (threadsMax);
+		  p_centroid[blockId] = threads_sum[0] / (threadsMax);
 	}
 }
 

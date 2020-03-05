@@ -69,28 +69,28 @@ __global__ void nelderMead_update(int p, int dimension, int * p_evaluations, flo
 
 		nelderMead_expansion<<< 1, dimension >>>(blockId, dimension, expansion_coef, p_simplex, p_centroid, p_reflection, p_expansion);
         cudaDeviceSynchronize();
-		if(blockId == 0) /*p*/printVertexDevice(dimension, p_expansion, "Expansion", blockId);
+		if(blockId == 2) /*p*/printVertexDevice(dimension, p_expansion, "Expansion", blockId);
 		
 		nelderMead_calculate_from_device(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_expansion, p_obj_expansion, true, blockId);
 		cudaDeviceSynchronize();
 		p_evaluations[blockId] += 1;
-		if(blockId == 0) /*p*/printEvaluationsDevice(p_evaluations, 1, blockId);
-        if(blockId == 0) /*p*/printSingleObjFunctionDevice(p_obj_expansion, "Objective Function Expansion", blockId);
+		if(blockId == 2) /*p*/printEvaluationsDevice(p_evaluations, 1, blockId);
+        if(blockId == 2) /*p*/printSingleObjFunctionDevice(p_obj_expansion, "Objective Function Expansion", blockId);
 		
 		if(p_obj_expansion[blockId] < p_objective_function[0]){
 			nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_expansion, p_indexes, p_objective_function, p_obj_expansion);
             cudaDeviceSynchronize();
-            if(blockId == 0) /*p*/printReplacement("Case 1a (expansion better than best vertex)", blockId);
+            if(blockId == 2) /*p*/printReplacement("Case 1a (expansion better than best vertex)", blockId);
 		}else{
             nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
             cudaDeviceSynchronize();
-            if(blockId == 0) /*p*/printReplacement("Case 1b (reflection better than best vertex)", blockId);
+            if(blockId == 2) /*p*/printReplacement("Case 1b (reflection better than best vertex)", blockId);
 		}
 	}
 	else if(p_obj_reflection[blockId] < next_worst){
         nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
         cudaDeviceSynchronize();
-        if(blockId == 0) /*p*/printReplacement("Case 2 (reflection better than second worst vertex)", blockId);
+        if(blockId == 2) /*p*/printReplacement("Case 2 (reflection better than second worst vertex)", blockId);
 	}else{
 
 		bool is_reflection_better = false;
@@ -105,28 +105,28 @@ __global__ void nelderMead_update(int p, int dimension, int * p_evaluations, flo
 			cudaDeviceSynchronize();
 		}
 		const char * best_one = is_reflection_better ? "Contraction reflection" : "Contraction worst";
-        if(blockId == 0) /*p*/printVertexDevice(dimension, p_contraction, best_one, blockId);
+        if(blockId == 2) /*p*/printVertexDevice(dimension, p_contraction, best_one, blockId);
 
 		nelderMead_calculate_from_device(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_contraction, p_obj_contraction, true, blockId);
 		cudaDeviceSynchronize();
 		p_evaluations[blockId] += 1;
-		if(blockId == 0) /*p*/printEvaluationsDevice(p_evaluations, 1, blockId);
-        if(blockId == 0) /*p*/printSingleObjFunctionDevice(p_obj_contraction, "Objective Function Contraction", blockId);
+		if(blockId == 2) /*p*/printEvaluationsDevice(p_evaluations, 1, blockId);
+        if(blockId == 2) /*p*/printSingleObjFunctionDevice(p_obj_contraction, "Objective Function Contraction", blockId);
 
 
 		if(p_obj_contraction[blockId] < worst and p_obj_contraction[blockId] < p_obj_reflection[blockId]){
 			nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_contraction, p_indexes, p_objective_function, p_obj_contraction);
             cudaDeviceSynchronize();
-            if(blockId == 0) /*p*/printReplacement("Case 3a (contraction better than wors", blockId);
+            if(blockId == 2) /*p*/printReplacement("Case 3a (contraction better than wors", blockId);
 		}else{
 			p_need_shrink[blockId] = true;
 
 			if(is_reflection_better){
 				nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
 				cudaDeviceSynchronize();
-				if(blockId == 0) /*p*/printReplacement("Case 3b (contraction worse than worst vertex and reflection point -> reflection better than worst)", blockId);
+				if(blockId == 2) /*p*/printReplacement("Case 3b (contraction worse than worst vertex and reflection point -> reflection better than worst)", blockId);
 			}else{
-				if(blockId == 0) /*p*/printReplacement("Case 3c (contraction worse than worst vertex and reflection point -> reflection worse than worst)", blockId);
+				if(blockId == 2) /*p*/printReplacement("Case 3c (contraction worse than worst vertex and reflection point -> reflection worse than worst)", blockId);
 			}
 
 		}
@@ -135,7 +135,9 @@ __global__ void nelderMead_update(int p, int dimension, int * p_evaluations, flo
 
 NelderMeadResult nelderMead(NelderMead &parameters, void * h_problem_parameters = NULL, void * d_problem_parameters = NULL){
 
-	int p = 2;
+	int p = 3;
+
+	printf("oi oi oi %d \n", parameters.dimension);
 
 	int dimension = parameters.dimension;
 
