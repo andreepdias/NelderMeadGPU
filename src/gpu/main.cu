@@ -1,6 +1,6 @@
 
 #include "util.cuh"
-#include "nelderMeadMulti.cuh"
+#include "nelderMeadSingle.cuh"
 
 int main() {
 

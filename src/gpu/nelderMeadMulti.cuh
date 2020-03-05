@@ -104,7 +104,7 @@ __global__ void nelderMead_update(int p, int dimension, int * p_evaluations, flo
 			nelderMead_contraction<<< 1, dimension >>>(blockId, dimension, contraction_coef, p_centroid, p_simplex, p_indexes[dimension - blockId] * dimension, p_contraction);
 			cudaDeviceSynchronize();
 		}
-		const char * best_one = is_reflection_better ? "Contraction reflection" : "Contraction worst";
+		/*p*/const char * best_one = is_reflection_better ? "Contraction reflection" : "Contraction worst";
         if(blockId == 2) /*p*/printVertexDevice(dimension, p_contraction, best_one, blockId);
 
 		nelderMead_calculate_from_device(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_contraction, p_obj_contraction, true, blockId);
@@ -135,9 +135,7 @@ __global__ void nelderMead_update(int p, int dimension, int * p_evaluations, flo
 
 NelderMeadResult nelderMead(NelderMead &parameters, void * h_problem_parameters = NULL, void * d_problem_parameters = NULL){
 
-	int p = 3;
-
-	printf("oi oi oi %d \n", parameters.dimension);
+	int p = 2;
 
 	int dimension = parameters.dimension;
 
