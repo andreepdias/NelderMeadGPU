@@ -2,6 +2,11 @@ all:
 	make clean
 	g++ src/cpu/main.cpp -std=c++11 -O3 -o cpu
 	nvcc -arch=sm_60 -std=c++11 -O3  -use_fast_math src/gpu/main.cu -rdc=true -lcudadevrt -o gpu
+
+server:
+	make clean
+	g++ src/cpu/main.cpp -std=c++11 -O3 -o cpu
+	nvcc -arch=sm_60 -std=c++11 -O3  -use_fast_math src/gpu/main.cu -rdc=true -lcudadevrt -o gpu
 	scp gpu server:NelderMeadGPU/
 
 cpu:

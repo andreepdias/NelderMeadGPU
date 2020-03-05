@@ -12,7 +12,7 @@ __global__ void nelderMead_reflection(int p, int dimension, float reflection_coe
 	int stride = blockId * dimension;
 
 	if(index < dimension){
-		p_reflection[stride + index] = p_centroid[index] + reflection_coef * (p_centroid[index] - p_simplex[ p_indexes[dimension - blockId] * dimension + index]);
+		p_reflection[stride + index] = p_centroid[index] + reflection_coef * (p_centroid[index] - p_simplex[ p_indexes[dimension - p + 1 + blockId] * dimension + index]);
 	}
 }
 
