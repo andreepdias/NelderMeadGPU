@@ -18,14 +18,15 @@ void printVertexHost(int dimension, thrust::device_vector<float> &d_vertex, cons
 	printf("\n");
 }
 
-void printSimplexHost(int dimension, thrust::device_vector<float> &d_simplex, const char * msg){
+void printSimplexHost(int dimension, thrust::device_vector<float> &d_simplex, thrust::device_vector<uint> &d_indexes, const char * msg){
 	thrust::host_vector<float> h_simplex = d_simplex;
+	thrust::host_vector<uint> h_indexes = d_indexes;
 
 	printf("%s:\n", msg);
 	for(int i = 0; i < dimension + 1; i++){
-		printf("%2d. ", i + 1);
+		printf("%2d. ", h_indexes[i] + 1);
 		for(int j = 0; j < dimension; j++){
-			int stride = i * dimension;
+			int stride = h_indexes[i] * dimension;
 			printf("%.5f ", h_simplex[stride + j]);
 		}
 		printf("\n");
@@ -57,18 +58,21 @@ void printSingleObjFunctionHost(int dimension, thrust::device_vector<float> &d_o
 
 __device__ void printVertexDevice(int dimension, float * p_vertex, const char * msg, int processor = 0){
 	printf("%s [%d]:\n", msg, processor);
+	
+	int stride = processor * dimension;
+
 	for(int i = 0; i < dimension; i++){
-		printf("%.5f ", p_vertex[i]);
+		printf("%.5f ", p_vertex[stride + i]);
 	}
 	printf("\n\n");
 }
 
-__device__ void printSimplexDevice(int dimension, float * p_simplex, const char * msg){
+__device__ void printSimplexDevice(int dimension, float * p_simplex, uint * p_indexes, const char * msg){
 	printf("%s:\n", msg);
 	for(int i = 0; i < dimension + 1; i++){
-		printf("%2d. ", i + 1);
+		printf("%2d. ", p_indexes[i] + 1);
 		for(int j = 0; j < dimension; j++){
-			int stride = i * dimension;
+			int stride = p_indexes[i] * dimension;
 			printf("%.5f ", p_simplex[stride + j]);
 		}
 		printf("\n");
@@ -78,7 +82,7 @@ __device__ void printSimplexDevice(int dimension, float * p_simplex, const char 
 
 __device__ void printSingleObjFunctionDevice(float * p_obj, const char * msg, int processor = 0){
 	printf("%s [%d]:\n", msg, processor);
-	printf("%2d. %.10f\n\n", 1, p_obj[0]);
+	printf("%2d. %.10f\n\n", 1, p_obj[processor]);
 }
 
 __device__ void printReplacement(const char * msg, int blockId){
