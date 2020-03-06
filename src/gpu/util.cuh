@@ -58,8 +58,11 @@ struct ABOffLattice{
 
 struct NelderMead{
 
-	int iterations_number;
+    bool multi_vertexes;
+    int p;
 
+    int executions_number;
+    int iterations_number;
 	int dimension;
 
     int evaluations_used;
@@ -73,7 +76,9 @@ struct NelderMead{
 	float * p_start;
 
 	ProblemEnum problem_type;
-	BenchmarkProblemEnum benchmark_problem;
+    BenchmarkProblemEnum benchmark_problem;
+    
+    std::vector< std::vector<float> > starting_points;
 
 };
 

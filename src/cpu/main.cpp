@@ -35,6 +35,8 @@ int main(){
 
     int dimension, iterations_number, executions_number;
 
+    double start, stop, elapsed_time;
+
     if(parameters.problem_type == BENCHMARK){
 
         input_file >> dimension;
@@ -71,9 +73,14 @@ int main(){
         for(int i = 0; i < executions_number; i++){
             parameters.p_start = &start_point[i][0];
 
+            start = stime();
+
             results[i] = nelderMead(parameters);
 
-            printf("Execucao %d: %.7f\n", i + 1, results[i].best);
+            stop = stime();
+            elapsed_time = stop - start;
+
+            printf("Execution %d: %.7f - Elapsed Time: %.7f\n", i + 1, results[i].best, elapsed_time);
         }
 
         float mean = 0.0f;
@@ -109,7 +116,12 @@ int main(){
         parameters.dimension = angles.size();
         parameters.p_start = &angles[0];
 
+        start = stime();
+
         NelderMeadResult result = nelderMead(parameters, (void*) parametersAB );
+
+        stop = stime();
+        elapsed_time = stop - start;
 
         printf("Best: %.7f\nVertex: ", result.best);
 
@@ -117,6 +129,7 @@ int main(){
             printf("%.7f ", result.best_vertex[i]);
         }
         printf("\nEvaluations: %d\n", result.evaluations_used);
+        printf("Elapsed Time: %.7f\n", elapsed_time);
     }
 
     return 0;

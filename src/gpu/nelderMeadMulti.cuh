@@ -133,7 +133,7 @@ __global__ void nelderMead_update(int p, int dimension, int * p_evaluations, flo
 	}
 }
 
-NelderMeadResult nelderMead(NelderMead &parameters, void * h_problem_parameters = NULL, void * d_problem_parameters = NULL){
+NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parameters = NULL, void * d_problem_parameters = NULL){
 
 	int p = 2;
 
