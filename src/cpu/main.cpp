@@ -31,7 +31,21 @@ int main(){
             stop = stime();
             elapsed_time = stop - start;
 
-            printf("Execution %d: %.7f - Elapsed Time: %.7f\n", i + 1, results[i].best, elapsed_time);
+            printf(" - Execution %d:\n", i + 1);
+
+            printf("Best: %.7f\n", results[i].best);
+
+            if(parameters.show_best_vertex){
+                printf("Best Vertex:\n");
+
+                for(int j = 0; j < parameters.dimension; j++){
+                    printf("%.7f ", results[i].best_vertex[j]);
+                }
+                printf("\n");
+            }
+
+            printf("Evaluations: %d\n", results[i].evaluations_used);
+            printf("Elapsed Time: %.7f\n", elapsed_time);
         }
 
         float mean = 0.0f;
@@ -40,16 +54,10 @@ int main(){
         }
         mean /= parameters.executions_number;
 
-        printf("\nMean: %.7f\n", mean);
+        printf("\nMean of Best vertexes: %.7f\n", mean);
 
     }else if(parameters.problem_type == AB_OFF_LATTICE){
         
-        for(int i = 0; i < parameters.dimension; i++){
-            printf("%.5f ", parameters.p_start[i]);
-        }
-        printf("\n");
-        
-
         start = stime();
 
         NelderMeadResult result = nelderMead(parameters, (void*) parametersAB );
@@ -57,10 +65,14 @@ int main(){
         stop = stime();
         elapsed_time = stop - start;
 
-        printf("Best: %.7f\nVertex: ", result.best);
+        printf("Best: %.7f\n", result.best);
 
-        for(int i = 0; i < parameters.dimension; i++){
-            printf("%.7f ", result.best_vertex[i]);
+        if(parameters.show_best_vertex){
+            printf("Best Vertex:\n");
+
+            for(int i = 0; i < parameters.dimension; i++){
+                printf("%.7f ", result.best_vertex[i]);
+            }
         }
         printf("\nEvaluations: %d\n", result.evaluations_used);
         printf("Elapsed Time: %.7f\n", elapsed_time);

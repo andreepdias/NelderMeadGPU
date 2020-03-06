@@ -188,7 +188,7 @@ __device__ void nelderMead_calculate_from_device(int blocks, int dimension, Prob
 		
 	}else if(problem_type == BENCHMARK){
 
-		int threads = 0;
+		int threads = dimension;
 		
 		switch(benchmark_problem){
 			case SQUARE:
@@ -216,7 +216,7 @@ void nelderMead_calculate_from_host(int blocks, NelderMead &p, void * h_problem_
 	}else if(p.problem_type == BENCHMARK){
 
 
-		int threads = 0;
+		int threads = p.dimension;
 		
 		switch(p.benchmark_problem){
 			case SQUARE:

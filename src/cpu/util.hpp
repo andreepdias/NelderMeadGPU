@@ -77,6 +77,8 @@ struct NelderMead{
     
     std::vector< std::vector<float> > starting_points;
 
+    bool show_best_vertex;
+
 };
 
 struct NelderMeadResult{
@@ -136,6 +138,8 @@ void readInputABOffLatttice(NelderMead &parameters, ABOffLattice * &parametersAB
     parameters.start = angles;
     parameters.p_start = &parameters.start[0];
 
+    parameters.dimension = angles.size();
+
     (*parametersAB).aminoacid_sequence = protein_chain.c_str();
     (*parametersAB).protein_length = protein_chain.size();
 }
@@ -194,6 +198,14 @@ bool readInput(NelderMead &parameters, std::ifstream &input_file, ABOffLattice *
        readInputBenchmark(parameters, input_file);
     }else if(parameters.problem_type == AB_OFF_LATTICE){
         readInputABOffLatttice(parameters, parametersAB, input_file);
+    }
+
+    input_file >> s;
+
+    if(s == "SHOW_BEST_VERTEX"){
+        parameters.show_best_vertex = true;
+    }else{
+        parameters.show_best_vertex = false;
     }
     
     return true;

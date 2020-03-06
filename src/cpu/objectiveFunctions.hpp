@@ -14,7 +14,7 @@ float calculateSquare(NelderMead &p, int number_evalueted_vertexes, float * p_si
 		int stride = i * p.dimension;
 
 		for(int j = 0; j < p.dimension; j++){
-			result += (p.p_simplex[stride + j] * p.p_simplex[stride +j]) / 100.0f;
+			result += (p_simplex[stride + j] * p_simplex[stride +j]) / 100.0f;
 		}
 
 		p_objective_function[i].first = result;
@@ -34,7 +34,7 @@ float calculateAbsoluteSum(NelderMead &p, int number_evalueted_vertexes, float *
 		int stride = i * p.dimension;
 
 		for(int j = 0; j < p.dimension; j++){
-			result += abs(p.p_simplex[stride + j]) / 100.0f;
+			result += abs(p_simplex[stride + j]) / 100.0f;
 		}
 
 		p_objective_function[i].first = result;

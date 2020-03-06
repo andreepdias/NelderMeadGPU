@@ -29,7 +29,7 @@ int main() {
         
         for(int i = 0; i < parameters.executions_number; i++){
             parameters.p_start = &parameters.starting_points[i][0];
-            
+
             cudaEventRecord(start);
 
             results[i] = nelderMead(parameters);
@@ -38,7 +38,21 @@ int main() {
             cudaEventSynchronize(stop);
             cudaEventElapsedTime(&elapsed_time, start, stop);
 
-            printf("Execution %d: Best %.7f - Elapsed Time: %.7f\n", i + 1, results[i].best, elapsed_time / 1000.0);
+            printf(" - Execution %d:\n", i + 1);
+
+            printf("Best: %.7f\n", results[i].best);
+            
+            if(parameters.show_best_vertex){
+                printf("Best Vertex:\n");
+
+                for(int j = 0; j < parameters.dimension; j++){
+                    printf("%.7f ", results[i].best_vertex[j]);
+                }
+                printf("\n");
+            }
+
+            printf("Evaluations: %d\n", results[i].evaluations_used);
+            printf("Elapsed Time: %.7f\n", elapsed_time / 1000.0);
         }
 
         float mean = 0.0f;
@@ -47,7 +61,7 @@ int main() {
         }
         mean /= parameters.executions_number;
 
-        printf("\nMean: %.7f\n", mean);
+        printf("\nMean of Best vertexes: %.7f\n", mean);
 
     }else if(parameters.problem_type == AB_OFF_LATTICE){
 
@@ -69,10 +83,15 @@ int main() {
         cudaEventSynchronize(stop);
         cudaEventElapsedTime(&elapsed_time, start, stop);
         
-        printf("Best: %.7f\nVertex: ", result.best);
-        
-        for(int i = 0; i < parameters.dimension; i++){
-            printf("%.7f ", result.best_vertex[i]);
+        printf("Best: %.7f\n", result.best);
+
+
+        if(parameters.show_best_vertex){
+            printf("Best Vertex:\n");
+            
+            for(int i = 0; i < parameters.dimension; i++){
+                printf("%.7f ", result.best_vertex[i]);
+            }
         }
         printf("\nEvaluations: %d\n", result.evaluations_used);
         printf("Elapsed Time: %.7f\n", elapsed_time / 1000.0);
