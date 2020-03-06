@@ -120,12 +120,12 @@ void nelderMead_contraction_secondCase(NelderMead &p){
 
 void nelderMead_contraction(NelderMead &p){
 
-	// /*p*/ printf("Reflection: %.5f, Worst: %.5f\n", p.p_obj_reflection[0].first, p.p_objective_function[p.dimension].first);
+/*p*/ printf("Reflection: %.5f, Worst: %.5f\n", p.p_obj_reflection[0].first, p.p_objective_function[p.dimension].first);
 	if(p.p_obj_reflection[0].first < p.p_objective_function[p.dimension].first){
-		// /*p*/ printf("First case contraction\n");
+	/*p*/ printf("First case contraction\n");
 		nelderMead_contraction_firstCase(p);
 	}else{
-		// /*p*/ printf("Second case contraction\n");
+	/*p*/ printf("Second case contraction\n");
 		nelderMead_contraction_secondCase(p);
 	}
 }
@@ -167,43 +167,43 @@ void nelderMead_update(int k, NelderMead &p, void * problem_parameters){
 	if(p.p_obj_reflection[0].first < p.p_objective_function[0].first){
 		
 		nelderMead_expansion(p);
-		//  /*p*/ printVertex(p.dimension, p.p_expansion, "Expansion");
+		/*p*/ printVertex(p.dimension, p.p_expansion, "Expansion");
 		
 		nelderMead_calculate(p, problem_parameters, 1, p.p_expansion, p.p_obj_expansion);
 		p.evaluations_used += 1;
-		//  /*p*/ printEvaluationsUpdate(p, 1);
-		//  /*p*/ printSingleObjFunction(p.p_obj_expansion, "Objective Function Expansion");
+		/*p*/ printEvaluationsUpdate(p, 1);
+		/*p*/ printSingleObjFunction(p.p_obj_expansion, "Objective Function Expansion");
 
 
 		if(p.p_obj_expansion[0].first < p.p_objective_function[0].first){
 			nelderMead_replacement(p, p.p_expansion, p.p_obj_expansion);
-			//  /*p*/ printSimplex(p.dimension, p.p_simplex, "Case 1a (expansion better than best vertex)");
+			/*p*/ printSimplex(p.dimension, p.p_simplex, "Case 1a (expansion better than best vertex)");
 		}else{
 			nelderMead_replacement(p, p.p_reflection, p.p_obj_reflection);
-			//  /*p*/ printSimplex(p.dimension, p.p_simplex, "Case 1b (reflection better than best vertex)");
+			/*p*/ printSimplex(p.dimension, p.p_simplex, "Case 1b (reflection better than best vertex)");
 		}
 
 	}else if(p.p_obj_reflection[0].first < p.p_objective_function[p.dimension - 1].first){
 		nelderMead_replacement(p, p.p_reflection, p.p_obj_reflection);
-		//  /*p*/ printSimplex(p.dimension, p.p_simplex, "Case 2 (reflection better than second worst vertex)");
+		/*p*/ printSimplex(p.dimension, p.p_simplex, "Case 2 (reflection better than second worst vertex)");
 	}else{
 		nelderMead_contraction(p);
-		//  /*p*/ printVertex(p.dimension, p.p_contraction, "Contraction");
+		/*p*/ printVertex(p.dimension, p.p_contraction, "Contraction");
 		nelderMead_calculate(p, problem_parameters, 1, p.p_contraction, p.p_obj_contraction);
 		p.evaluations_used += 1;
-		//  /*p*/ printEvaluationsUpdate(p, 1);
-		//  /*p*/ printSingleObjFunction(p.p_obj_contraction, "Objective Function Contraction");
+		/*p*/ printEvaluationsUpdate(p, 1);
+		/*p*/ printSingleObjFunction(p.p_obj_contraction, "Objective Function Contraction");
 
 		if(p.p_obj_contraction[0].first < p.p_objective_function[p.dimension].first){
 			nelderMead_replacement(p, p.p_contraction, p.p_obj_contraction);
-			//  /*p*/ printSimplex(p.dimension, p.p_simplex, "Case 3a (contraction better than worst vertex)");
+			/*p*/ printSimplex(p.dimension, p.p_simplex, "Case 3a (contraction better than worst vertex)");
 		}else{
-			//  /*p*/ printSimplex(p.dimension, p.p_simplex, "Pre Shrink");
+			/*p*/ printSimplex(p.dimension, p.p_simplex, "Pre Shrink");
 			nelderMead_shrink(p);
-			//  /*p*/ printSimplex(p.dimension, p.p_simplex, "Shrink Case 3b (contraction worst than worst vertex)");
+			/*p*/ printSimplex(p.dimension, p.p_simplex, "Shrink Case 3b (contraction worst than worst vertex)");
 			nelderMead_calculate(p, problem_parameters, p.dimension + 1, p.p_simplex, p.p_objective_function);
 			p.evaluations_used += p.dimension + 1;
-			//  /*p*/ printEvaluationsUpdate(p, p.dimension + 1);
+			/*p*/ printEvaluationsUpdate(p, p.dimension + 1);
 
 			
 		}
@@ -254,38 +254,38 @@ NelderMeadResult nelderMead(NelderMead &parameters, void * problem_parameters = 
 	parameters.p_obj_contraction = &obj_contraction[0];
 
 
-	// /*p*/ printVertex(parameters.dimension, parameters.p_start, "Start");
+/*p*/ printVertex(parameters.dimension, parameters.p_start, "Start");
 
 	nelderMead_initialize(parameters);
-	// /*p*/ printSimplex(parameters.dimension, parameters.p_simplex, "Initialize");
+/*p*/ printSimplex(parameters.dimension, parameters.p_simplex, "Initialize");
 
 	nelderMead_calculate(parameters, problem_parameters, dimension + 1, parameters.p_simplex, parameters.p_objective_function);
 	parameters.evaluations_used += dimension + 1;
-	// /*p*/ printEvaluationsHost(parameters.evaluations_used, dimension + 1);
-	// /*p*/ printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function");
+/*p*/ printEvaluationsHost(parameters.evaluations_used, dimension + 1);
+/*p*/ printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function");
 	std::sort(objective_function.begin(), objective_function.end());
-	// /*p*/ printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function Sorted");
+/*p*/ printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function Sorted");
 
 	for(int i = 0; i < parameters.iterations_number; i++){
 
 		nelderMead_centroid(parameters);
-		// /*p*/ printVertex(parameters.dimension, parameters.p_centroid, "Centroid");
+	/*p*/ printVertex(parameters.dimension, parameters.p_centroid, "Centroid");
 
 		nelderMead_reflection(parameters);
-		// /*p*/ printVertex(parameters.dimension, parameters.p_reflection, "Reflection");
+	/*p*/ printVertex(parameters.dimension, parameters.p_reflection, "Reflection");
 		nelderMead_calculate(parameters, problem_parameters, 1, parameters.p_reflection, parameters.p_obj_reflection);
 		parameters.evaluations_used += 1;
-		// /*p*/ printEvaluationsHost(parameters.evaluations_used, 1);
-		// /*p*/ printSingleObjFunction(parameters.p_obj_reflection, "Objective Function Reflection");
+	/*p*/ printEvaluationsHost(parameters.evaluations_used, 1);
+	/*p*/ printSingleObjFunction(parameters.p_obj_reflection, "Objective Function Reflection");
 
 		nelderMead_update(i, parameters, problem_parameters);
-		// /*p*/ printEvaluationsHost(parameters.evaluations_used, 0);
+	/*p*/ printEvaluationsHost(parameters.evaluations_used, 0);
 
-		// /*p*/ printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function");
+	/*p*/ printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function");
 		std::sort(objective_function.begin(), objective_function.end());
-		// /*p*/ printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function Sorted");
+	/*p*/ printObjFunction(parameters.dimension, parameters.p_objective_function, "Objective Function Sorted");
 
-		// /*p*/ printf("------------------ END ITERATION %d ------------------\n\n", i + 1);
+	/*p*/ printf("------------------ END ITERATION %d ------------------\n\n", i + 1);
 	}
 
 	NelderMeadResult result;

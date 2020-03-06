@@ -1,26 +1,34 @@
 #include <bits/stdc++.h>
+#include "src/cpu/util.hpp"
 
-struct Protein{
-    int size;
-};
-
-
-void do_nothing(Protein * & protein){
-
-    protein = new Protein();
-    (*protein).size = 69;
-
-}
 
 int main(){
 
-    Protein * protein;
 
-    do_nothing(protein);
+    std::ifstream file("test.txt");
 
-    int s = (*protein).size;
+    std::string aa;
+    file >> aa;
 
-    printf("%d\n", s);
+    float x;
+    std::vector<float> angles;
+
+    while(file >> x){
+        angles.push_back(x);
+    }
+
+    int dimension = angles.size();
+    int protein_length = aa.size();
+
+    NelderMead parameters;
+    ABOffLattice * parametersAB = new ABOffLattice();
+
+    parameters.dimension = dimension;
+
+    (*parametersAB).protein_length = protein_length;
+    (*parametersAB).aminoacid_sequence = aa.c_str();
+
+    
 
     return 0;
 
