@@ -36,6 +36,7 @@ enum BenchmarkProblemEnum {
 struct ABOffLattice{
 
 	int protein_length;
+    std::string aa_sequence;
 	const char * aminoacid_sequence;
 
 };
@@ -140,7 +141,8 @@ void readInputABOffLatttice(NelderMead &parameters, ABOffLattice * &parametersAB
 
     parameters.dimension = angles.size();
 
-    (*parametersAB).aminoacid_sequence = protein_chain.c_str();
+    (*parametersAB).aa_sequence = protein_chain;
+    (*parametersAB).aminoacid_sequence = (*parametersAB).aa_sequence.c_str();
     (*parametersAB).protein_length = protein_chain.size();
 }
 

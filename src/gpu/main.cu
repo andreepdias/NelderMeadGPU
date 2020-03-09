@@ -72,7 +72,7 @@ int main() {
 
         char aa_sequence[150];
         memset(aa_sequence, 0, sizeof(char) * 150);
-        strcpy(aa_sequence, aminoacid_sequence);
+        strcpy(aa_sequence, (*parametersAB).aminoacid_sequence);
         cudaMemcpyToSymbol(aminoacid_sequence, (void *) aa_sequence, 150 * sizeof(char));
 
         cudaEventRecord(start);

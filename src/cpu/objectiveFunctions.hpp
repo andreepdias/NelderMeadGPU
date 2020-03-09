@@ -4,45 +4,6 @@
 
 #include "util.hpp"
 
-float calculateSquare(NelderMead &p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
-
-    float result;
-
-	for(int i = 0; i < number_evalueted_vertexes; i++){
-		
-		result = 0.0f;
-		int stride = i * p.dimension;
-
-		for(int j = 0; j < p.dimension; j++){
-			result += (p_simplex[stride + j] * p_simplex[stride +j]) / 100.0f;
-		}
-
-		p_objective_function[i].first = result;
-		p_objective_function[i].second = i;
-	}
-
-    return result;
-}
-
-float calculateAbsoluteSum(NelderMead &p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
-
-    float result;
-
-	for(int i = 0; i < number_evalueted_vertexes; i++){
-		
-		result = 0.0f;
-		int stride = i * p.dimension;
-
-		for(int j = 0; j < p.dimension; j++){
-			result += abs(p_simplex[stride + j]) / 100.0f;
-		}
-
-		p_objective_function[i].first = result;
-		p_objective_function[i].second = i;
-	}
-
-    return result;
-}
 
 void calculateABOffLattice(NelderMead &p, void * problem_p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
 
@@ -107,5 +68,46 @@ void calculateABOffLattice(NelderMead &p, void * problem_p, int number_evalueted
 		p_objective_function[k].second = k;
     }
 }
+
+float calculateSquare(NelderMead &p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
+
+    float result;
+
+	for(int i = 0; i < number_evalueted_vertexes; i++){
+		
+		result = 0.0f;
+		int stride = i * p.dimension;
+
+		for(int j = 0; j < p.dimension; j++){
+			result += (p_simplex[stride + j] * p_simplex[stride +j]) / 100.0f;
+		}
+
+		p_objective_function[i].first = result;
+		p_objective_function[i].second = i;
+	}
+
+    return result;
+}
+
+float calculateAbsoluteSum(NelderMead &p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
+
+    float result;
+
+	for(int i = 0; i < number_evalueted_vertexes; i++){
+		
+		result = 0.0f;
+		int stride = i * p.dimension;
+
+		for(int j = 0; j < p.dimension; j++){
+			result += abs(p_simplex[stride + j]) / 100.0f;
+		}
+
+		p_objective_function[i].first = result;
+		p_objective_function[i].second = i;
+	}
+
+    return result;
+}
+
 
 #endif
