@@ -8,7 +8,7 @@
 // in STATLIB. Adapted from the C version by J. Burkhardt
 // http://people.sc.fsu.edu/~jburkardt/c_src/asa047/asa047.html
 
-/*
+
 void nelmin ( float (*fn)(float*), int n, float start[], float xmin[], float *ynewlo, float reqmin, float step[], int konvge, int kcount, int *icount, int *numres, int *ifault )
 {
 	const float ccoeff = 0.5;
@@ -299,5 +299,5 @@ void nelmin ( float (*fn)(float*), int n, float start[], float xmin[], float *yn
 	}
 	return;
 }
-*/
+
 #endif

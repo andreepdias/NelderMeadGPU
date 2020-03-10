@@ -38,11 +38,11 @@ void nelmin ( Real (*fn)(Real*), int n, Real start[], Real xmin[], Real *ynewlo,
 		return; 
 	}
 
-	std::vector<Real> p(n*(n+1));
+	std::vector<Real> p(n*(n+1)); // p_simplex 
 	std::vector<Real> pstar(n);
 	std::vector<Real> p2star(n);
 	std::vector<Real> pbar(n);
-	std::vector<Real> y(n+1);
+	std::vector<Real> y(n+1); // p_obj_function
 
 	*icount = 0;
 	*numres = 0;

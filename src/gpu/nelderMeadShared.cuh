@@ -4,102 +4,6 @@
 #include "util.cuh"
 #include "objectiveFunctions.cuh"
 
-void printVertexHost(int dimension, thrust::device_vector<float> &d_vertex, const char * msg, int p = 1){
-	thrust::host_vector<float> h_vertex = d_vertex;
-
-	for(int k = 0; k < p; k++){
-		int stride = dimension * k;		
-		printf("%s [%d]: ", msg, k);
-		for(int i = 0 ; i < dimension; i++){
-			printf("%.5f ", h_vertex[i + stride]);
-		}
-		printf("\n");
-	}
-	printf("\n");
-}
-
-void printSimplexHost(int dimension, thrust::device_vector<float> &d_simplex, thrust::device_vector<uint> &d_indexes, const char * msg){
-	thrust::host_vector<float> h_simplex = d_simplex;
-	thrust::host_vector<uint> h_indexes = d_indexes;
-
-	printf("%s:\n", msg);
-	for(int i = 0; i < dimension + 1; i++){
-		printf("%2d. ", h_indexes[i] + 1);
-		for(int j = 0; j < dimension; j++){
-			int stride = h_indexes[i] * dimension;
-			printf("%.5f ", h_simplex[stride + j]);
-		}
-		printf("\n");
-	}
-	printf("\n");
-}
-
-void printObjFunctionHost(int dimension, thrust::device_vector<float> &d_objective_function, thrust::device_vector<uint> &d_indexes, const char * msg){
-	thrust::host_vector<float> h_objective_function = d_objective_function;
-	thrust::host_vector<uint> h_indexes = d_indexes;
-
-	printf("%s\n", msg);
-	for(int i = 0; i < dimension + 1; i++){
-		printf("%2d. %.10f\n", h_indexes[i] + 1, h_objective_function[i]);
-	}
-	printf("\n");
-}
-
-void printSingleObjFunctionHost(int dimension, thrust::device_vector<float> &d_objective_function, const char * msg, int p = 1){
-	thrust::host_vector<float> h_objective_function = d_objective_function;
-
-	printf("%s:\n", msg);
-	for(int k = 0; k < p; k++){
-		printf("[%d] %.10f\n", k, h_objective_function[k]);
-	}
-	printf("\n");
-
-}
-
-__device__ void printVertexDevice(int dimension, float * p_vertex, const char * msg, int processor = 0){
-	printf("%s [%d]:\n", msg, processor);
-	
-	int stride = processor * dimension;
-
-	for(int i = 0; i < dimension; i++){
-		printf("%.5f ", p_vertex[stride + i]);
-	}
-	printf("\n\n");
-}
-
-__device__ void printSimplexDevice(int dimension, float * p_simplex, uint * p_indexes, const char * msg){
-	printf("%s:\n", msg);
-	for(int i = 0; i < dimension + 1; i++){
-		printf("%2d. ", p_indexes[i] + 1);
-		for(int j = 0; j < dimension; j++){
-			int stride = p_indexes[i] * dimension;
-			printf("%.5f ", p_simplex[stride + j]);
-		}
-		printf("\n");
-	}
-	printf("\n");
-}
-
-__device__ void printSingleObjFunctionDevice(float * p_obj, const char * msg, int processor = 0){
-	printf("%s [%d]:\n", msg, processor);
-	printf("%2d. %.10f\n\n", 1, p_obj[processor]);
-}
-
-__device__ void printReplacement(const char * msg, int blockId){
-	printf("Replacement [%d]: %s.\n", blockId, msg);
-}
-
-__device__ void printEvaluationsDevice(int * p_evaluations, int add, int p = 0){
-	printf("*-*Total evaluations during update[%d]: %d. Right now adding: %d\n", p, p_evaluations[0], add);
-}
-
-
-void printEvaluationsHost(int total, int add){
-	printf("***Total evaluations: %d. Now adding: %d\n", total, add);
-}
-
-/* ------------------------- END PRINTING------------------------- */
-
 
 __global__ void nelderMead_initialize(int dimension, float step, float * start, float * p_simplex){
 
@@ -257,6 +161,101 @@ __device__ void sequence(uint * p_indexes, int end){
 	for(int i = 0; i < end; i++){
 		p_indexes[i] = i;
 	}
+}
+
+
+void printVertexHost(int dimension, thrust::device_vector<float> &d_vertex, const char * msg, int p = 1){
+	thrust::host_vector<float> h_vertex = d_vertex;
+
+	for(int k = 0; k < p; k++){
+		int stride = dimension * k;		
+		printf("%s [%d]: ", msg, k);
+		for(int i = 0 ; i < dimension; i++){
+			printf("%.5f ", h_vertex[i + stride]);
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void printSimplexHost(int dimension, thrust::device_vector<float> &d_simplex, thrust::device_vector<uint> &d_indexes, const char * msg){
+	thrust::host_vector<float> h_simplex = d_simplex;
+	thrust::host_vector<uint> h_indexes = d_indexes;
+
+	printf("%s:\n", msg);
+	for(int i = 0; i < dimension + 1; i++){
+		printf("%2d. ", h_indexes[i] + 1);
+		for(int j = 0; j < dimension; j++){
+			int stride = h_indexes[i] * dimension;
+			printf("%.5f ", h_simplex[stride + j]);
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void printObjFunctionHost(int dimension, thrust::device_vector<float> &d_objective_function, thrust::device_vector<uint> &d_indexes, const char * msg){
+	thrust::host_vector<float> h_objective_function = d_objective_function;
+	thrust::host_vector<uint> h_indexes = d_indexes;
+
+	printf("%s\n", msg);
+	for(int i = 0; i < dimension + 1; i++){
+		printf("%2d. %.10f\n", h_indexes[i] + 1, h_objective_function[i]);
+	}
+	printf("\n");
+}
+
+void printSingleObjFunctionHost(int dimension, thrust::device_vector<float> &d_objective_function, const char * msg, int p = 1){
+	thrust::host_vector<float> h_objective_function = d_objective_function;
+
+	printf("%s:\n", msg);
+	for(int k = 0; k < p; k++){
+		printf("[%d] %.10f\n", k, h_objective_function[k]);
+	}
+	printf("\n");
+
+}
+
+__device__ void printVertexDevice(int dimension, float * p_vertex, const char * msg, int processor = 0){
+	printf("%s [%d]:\n", msg, processor);
+	
+	int stride = processor * dimension;
+
+	for(int i = 0; i < dimension; i++){
+		printf("%.5f ", p_vertex[stride + i]);
+	}
+	printf("\n\n");
+}
+
+__device__ void printSimplexDevice(int dimension, float * p_simplex, uint * p_indexes, const char * msg){
+	printf("%s:\n", msg);
+	for(int i = 0; i < dimension + 1; i++){
+		printf("%2d. ", p_indexes[i] + 1);
+		for(int j = 0; j < dimension; j++){
+			int stride = p_indexes[i] * dimension;
+			printf("%.5f ", p_simplex[stride + j]);
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+__device__ void printSingleObjFunctionDevice(float * p_obj, const char * msg, int processor = 0){
+	printf("%s [%d]:\n", msg, processor);
+	printf("%2d. %.10f\n\n", 1, p_obj[processor]);
+}
+
+__device__ void printReplacement(const char * msg, int blockId){
+	printf("Replacement [%d]: %s.\n", blockId, msg);
+}
+
+__device__ void printEvaluationsDevice(int * p_evaluations, int add, int p = 0){
+	printf("*-*Total evaluations during update[%d]: %d. Right now adding: %d\n", p, p_evaluations[0], add);
+}
+
+
+void printEvaluationsHost(int total, int add){
+	printf("***Total evaluations: %d. Now adding: %d\n", total, add);
 }
 
 
