@@ -15,6 +15,12 @@ int main(){
         return 1;
     }
 
+    printf("-------------------- PARAMETERS --------------------\n");
+    printf("Executions: %d\n", parameters.executions_number);
+    printf("Iterations: %d\n", parameters.iterations_number);
+    printf("Dimension:  %d\n", parameters.dimension);
+    printf("----------------------------------------------------\n");
+
     double start, stop, elapsed_time;
 
     if(parameters.problem_type == BENCHMARK){

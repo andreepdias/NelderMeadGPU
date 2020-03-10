@@ -17,6 +17,12 @@ int main() {
         return 1;
     }
 
+    printf("-------------------- PARAMETERS --------------------\n");
+    printf("Executions: %d\n", parameters.executions_number);
+    printf("Iterations: %d\n", parameters.iterations_number);
+    printf("Dimension:  %d\n", parameters.dimension);
+    printf("----------------------------------------------------\n");
+
     cudaEvent_t start, stop;
 
     cudaEventCreate(&start);

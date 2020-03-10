@@ -128,9 +128,14 @@ __global__ void nelderMead_centroid(int dimension, float * p_simplex, uint * p_i
 	
 	__syncthreads();
 
-	__shared__ float threads_sum [256];
+	__shared__ float threads_sum [512];
 	threads_sum[threadId] = value;
   
+	if(threadId < 256 && threadId + 256 < threadsMax){
+		threads_sum[threadId] += threads_sum[threadId + 256];
+	}  
+	__syncthreads();
+
 	if(threadId < 128 && threadId + 128 < threadsMax){
 		threads_sum[threadId] += threads_sum[threadId + 128];
 	}  
