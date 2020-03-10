@@ -59,6 +59,78 @@ __global__ void nelderMead_replacement(int dimension, float * p_simplex, float *
 	}
 }
 
+
+__device__ float operator()(const unsigned int& id) const { 
+
+	float sum = 0.0f, c, d, dx, dy, dz;
+
+	sum += (1.0f - cosf(angles[id])) / 4.0f;
+
+	for(unsigned int i = id + 2; i < protein_length; i++){
+
+		if(device_aminoacid_sequence[id] == 'A' && device_aminoacid_sequence[i] == 'A')
+			c = 1.0;
+		else if(device_aminoacid_sequence[id] == 'B' && device_aminoacid_sequence[i] == 'B')
+			c = 0.5;
+		else
+			c = -0.5;
+
+		dx = aminoacids[id] - aminoacids[i];
+		dy = aminoacids[id + protein_length] - aminoacids[i + protein_length];
+		dz = aminoacids[id + protein_length * 2] - aminoacids[i + protein_length * 2];
+		d = sqrtf( (dx * dx) + (dy * dy) + (dz * dz) );
+		
+		sum += 4.0f * ( 1.0f / powf(d, 12.0f) - c / powf(d, 6.0f) );
+			
+	}
+	return sum;
+}
+
+void calculateCoordinates(float * angles, thrust::host_vector<float> &aminoacids, int protein_length){
+
+	aminoacids[0] = 0.0f;
+	aminoacids[0 + protein_length] = 0.0f;
+	aminoacids[0 + protein_length * 2] = 0.0f;
+
+	aminoacids[1] = 0.0f;
+	aminoacids[1 + protein_length] = 1.0f; 
+	aminoacids[1 + protein_length * 2] = 0.0f;
+
+	aminoacids[2] = cosf(angles[0]);
+	aminoacids[2 + protein_length] = sinf(angles[0]) + 1.0f;
+	aminoacids[2 + protein_length * 2] = 0.0f;
+
+	for(int i = 3; i < protein_length; i++){
+		aminoacids[i] = aminoacids[i - 1] + cosf(angles[i - 2]) * cosf(angles[i + protein_length - 5]); // i - 3 + protein_length - 2
+		aminoacids[i + protein_length] = aminoacids[i - 1 + protein_length] + sinf(angles[i - 2]) * cosf(angles[i + protein_length - 5]);
+		aminoacids[i + protein_length * 2] = aminoacids[i - 1 + protein_length * 2] + sinf(angles[i + protein_length - 5]);
+	}
+}
+
+float calculate(float * angles){
+        
+	calculateCoordinates(angles, host_aminoacids_position, protein_length);
+	device_aminoacids_position = host_aminoacids_position;
+
+	/* usar simplex */
+	// thrust::copy(angles, angles + dimension, device_angles.begin());
+	// float * p_angles = thrust::raw_pointer_cast(&device_angles[0]);
+	float * p_aminoacids = thrust::raw_pointer_cast(&device_aminoacids_position[0]);
+
+	Calculate3DAB unary_op(p_angles, p_aminoacids, dimension, protein_length);
+	thrust::plus<float> binary_op;
+
+	float result = thrust::transform_reduce(thrust::counting_iterator<unsigned int>(0), thrust::counting_iterator<unsigned int>(protein_length - 2), unary_op, 0.0f, binary_op);
+
+	return result;
+}
+
+void nelderMead_calculate_reduction_from_host(NelderMead &P, void * h_problem_p, float * p_simplex, float * p_objective_function){
+
+}
+
+// void nelderMead_calculate_from_host(int blocks, NelderMead &p, void * h_problem_p, float * p_simplex, float * p_objective_function,  bool is_specific_block = false, int specific_block = 0);
+
 __global__ void nelderMead_update(int k, int dimension, int * p_evaluations, float expansion_coef, float contraction_coef, float shrink_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, float * p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction, void * d_problem_parameters, ProblemEnum problem_type, BenchmarkProblemEnum benchmark_problem, int * p_count){
 
 	int numberBlocks = ceil(dimension / 32.0f);
@@ -160,7 +232,7 @@ NelderMeadResult nelderMeadSingle(NelderMead &parameters, void * h_problem_param
 	thrust::device_vector<float> d_start(dimension);
 	
 	//thrust::device_vector<float> d_aminoacid_position(protein_length * 3);
-	//thrust::host_vector<float> 	 h_aminoacid_position(protein_length * 3);
+	thrust::host_vector<float> 	 h_aminoacid_position(protein_length * 3);
 
 	thrust::device_vector<float> d_simplex(dimension * (dimension + 1));	
 
