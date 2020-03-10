@@ -182,8 +182,13 @@ __global__ void calculateABOffLattice(int dimension, int protein_length, float *
 	}
 	__syncthreads();
 
-	__shared__ float threads_sum [128];
+	__shared__ float threads_sum [256];
 	threads_sum[threadId] = sum;
+
+	if(threadId < 128 && threadId + 128 < threadsMax){
+		threads_sum[threadId] += threads_sum[threadId + 64];
+	}  
+	__syncthreads();
   
 	if(threadId < 64 && threadId + 64 < threadsMax){
 		threads_sum[threadId] += threads_sum[threadId + 64];

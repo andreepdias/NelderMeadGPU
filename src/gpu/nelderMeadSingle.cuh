@@ -184,7 +184,6 @@ NelderMeadResult nelderMeadSingle(NelderMead &parameters, void * h_problem_param
 	int evaluations_used = 0;
 	
 	thrust::copy(parameters.p_start, parameters.p_start + dimension, d_start.begin());
-
 	thrust::sequence(d_indexes.begin(), d_indexes.end());
 
 	// /*p*/printVertexHost(dimension, d_start, "Start");	

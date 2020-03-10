@@ -15,7 +15,8 @@ int main(){
     std::vector<float> angles;
 
     while(file >> x){
-        angles.push_back(x * PI / 180.0f);
+        //angles.push_back(x * PI / 180.0f);
+        angles.push_back(x);
     }
 
     int dimension = angles.size();
