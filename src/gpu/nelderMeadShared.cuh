@@ -190,6 +190,7 @@ __device__ void nelderMead_calculate_from_device(int blocks, int dimension, Prob
 		int threads = (*d_problem_parameters).protein_length - 2;
 
 		calculateABOffLattice<<< blocks, threads >>>(dimension, d_problem_parameters->protein_length, p_simplex, p_objective_function, is_specific_block, specific_block);
+		cudaDeviceSynchronize();
 		
 	}else if(problem_type == BENCHMARK){
 
@@ -198,9 +199,11 @@ __device__ void nelderMead_calculate_from_device(int blocks, int dimension, Prob
 		switch(benchmark_problem){
 			case SQUARE:
 				calculateSquare<<< blocks, threads >>>(dimension, p_simplex, p_objective_function, is_specific_block, specific_block);
+				cudaDeviceSynchronize();
 				break;
 			case SUM:
 				calculateAbsoluteSum<<< blocks, threads >>>(dimension, p_simplex, p_objective_function, is_specific_block, specific_block);
+				cudaDeviceSynchronize();
 				break;
 		}
 	}

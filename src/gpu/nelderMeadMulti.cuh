@@ -54,18 +54,24 @@ __global__ void nelderMead_replacement(int processor, int dimension, float * p_s
 	}
 }
 
-__global__ void nelderMead_update(int p, int dimension, int * p_evaluations, float expansion_coef, float contraction_coef, float shrink_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, float * p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction, bool * p_need_shrink, void * d_problem_parameters, ProblemEnum problem_type, BenchmarkProblemEnum benchmark_problem){
+__global__ void nelderMead_update(int p, int dimension, int * p_evaluations, float expansion_coef, float contraction_coef, float shrink_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, float * p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction, bool * p_need_shrink, void * d_problem_parameters, ProblemEnum problem_type, BenchmarkProblemEnum benchmark_problem, int * p_count1, int * p_count2, int * p_count3, int * p_count4){
 
 	int blockId = blockIdx.x;
 	float worst = p_objective_function[dimension - blockId];
 	float next_worst = p_objective_function[dimension - blockId - 1];
+	float best = p_objective_function[0];
+	float reflection = p_obj_reflection[blockId];
 
 	//cooperative_groups::grid_group g = cooperative_groups::this_grid();
 	//g.sync();
 
 	p_need_shrink[blockId] = false;
 
-	if(p_obj_reflection[blockId] < p_objective_function[0]){
+	// /*p*/ printf("[[Best: %.5f, Reflection: %.5f], Second Worst: %.5f], [Contraction: %.5f, Worst: %.5f]\n", p_objective_function[0], p_obj_reflection[0],  p_objective_function[dimension - 1], p_obj_contraction[0], p_objective_function[dimension]);
+
+	if(reflection < best){
+
+		// /*c*/ p_count1[blockId] += 1;
 
 		nelderMead_expansion<<< 1, dimension >>>(blockId, dimension, expansion_coef, p_simplex, p_centroid, p_reflection, p_expansion);
         cudaDeviceSynchronize();
@@ -73,7 +79,7 @@ __global__ void nelderMead_update(int p, int dimension, int * p_evaluations, flo
 		
 		nelderMead_calculate_from_device(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_expansion, p_obj_expansion, true, blockId);
 		cudaDeviceSynchronize();
-		//p_evaluations[blockId] += 1;
+		// /*e*/ p_evaluations[blockId] += 1;
 		//   /*p*/printEvaluationsDevice(p_evaluations, 1, blockId);
         //  /*p*/printSingleObjFunctionDevice(p_obj_expansion, "Objective Function Expansion", blockId);
 		
@@ -87,7 +93,10 @@ __global__ void nelderMead_update(int p, int dimension, int * p_evaluations, flo
             //  /*p*/printReplacement("Case 1b (reflection better than best vertex)", blockId);
 		}
 	}
-	else if(p_obj_reflection[blockId] < next_worst){
+	else if(reflection < next_worst){
+
+		// /*c*/ p_count2[blockId] += 1;
+
         nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
         cudaDeviceSynchronize();
         //  /*p*/printReplacement("Case 2 (reflection better than second worst vertex)", blockId);
@@ -95,7 +104,7 @@ __global__ void nelderMead_update(int p, int dimension, int * p_evaluations, flo
 
 		bool is_reflection_better = false;
 
-		if(p_obj_reflection[blockId] < worst){
+		if(reflection < worst){
 			is_reflection_better = true;
 
 			nelderMead_contraction<<< 1, dimension >>>(blockId, dimension, contraction_coef, p_centroid, p_reflection, blockId * dimension, p_contraction);
@@ -109,16 +118,23 @@ __global__ void nelderMead_update(int p, int dimension, int * p_evaluations, flo
 
 		nelderMead_calculate_from_device(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_contraction, p_obj_contraction, true, blockId);
 		cudaDeviceSynchronize();
-		//p_evaluations[blockId] += 1;
+		// /*e*/ p_evaluations[blockId] += 1;
 		//  /*p*/printEvaluationsDevice(p_evaluations, 1, blockId);
         //  /*p*/printSingleObjFunctionDevice(p_obj_contraction, "Objective Function Contraction", blockId);
 
+		float contraction = p_obj_contraction[blockId];
 
-		if(p_obj_contraction[blockId] < worst and p_obj_contraction[blockId] < p_obj_reflection[blockId]){
+		if(contraction < worst and contraction < reflection){
+
+			// /*c*/ p_count3[blockId] += 1;
+
 			nelderMead_replacement<<< 1, dimension >>>(blockId, dimension, p_simplex, p_contraction, p_indexes, p_objective_function, p_obj_contraction);
             cudaDeviceSynchronize();
             //  /*p*/printReplacement("Case 3a (contraction better than wors", blockId);
 		}else{
+
+			// /*c*/ p_count4[blockId] += 1;
+
 			p_need_shrink[blockId] = true;
 
 			if(is_reflection_better){
@@ -167,6 +183,10 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 	thrust::device_vector<bool>  d_need_shrink(p);
 
 	thrust::device_vector<int> d_evaluations(p);
+	thrust::device_vector<int> d_count1(p);
+	thrust::device_vector<int> d_count2(p);
+	thrust::device_vector<int> d_count3(p);
+	thrust::device_vector<int> d_count4(p);
 
 	float * p_start 			 		   = thrust::raw_pointer_cast(&d_start[0]);
 	
@@ -189,11 +209,15 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 	bool * p_need_shrink 				   = thrust::raw_pointer_cast(&d_need_shrink[0]);
 
 	int * p_evaluations 				   = thrust::raw_pointer_cast(&d_evaluations[0]);
+	int * p_count1 						   = thrust::raw_pointer_cast(&d_count1[0]);
+	int * p_count2 						   = thrust::raw_pointer_cast(&d_count2[0]);
+	int * p_count3 						   = thrust::raw_pointer_cast(&d_count3[0]);
+	int * p_count4 						   = thrust::raw_pointer_cast(&d_count4[0]);
+
 
 	int evaluations_used = 0;
 	
-	thrust::copy(parameters.p_start, parameters.p_start + dimension, d_start.begin());
-	
+	thrust::copy(parameters.p_start, parameters.p_start + dimension, d_start.begin());	
 	thrust::sequence(d_indexes.begin(), d_indexes.end());
 
 	// /*p*/printVertexHost(dimension, d_start, "Start");
@@ -204,7 +228,7 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 
 
 	nelderMead_calculate_from_host(dimension + 1, parameters, h_problem_parameters, p_simplex, p_objective_function);
-	//evaluations_used += dimension + 1;
+	// /*e*/ evaluations_used += dimension + 1;
 	
 	// /*p*/printEvaluationsHost(evaluations_used, dimension + 1);	
 	// /*p*/printObjFunctionHost(dimension, d_objective_function, d_indexes, "Objective Function");
@@ -222,40 +246,40 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 		// /*p*/printVertexHost(dimension, d_reflection, "Reflection", p);
 		
 		nelderMead_calculate_from_host(p, parameters, h_problem_parameters, p_reflection, p_obj_reflection);
-	//	evaluations_used += p;
+		// /*e*/ evaluations_used += p;
 		// /*p*/printEvaluationsHost(evaluations_used, p);
 		// /*p*/printSingleObjFunctionHost(dimension, d_obj_reflection, "Objective Function Reflection", p);
 		
-		
-		nelderMead_update<<< p, 1 >>>(p, dimension, p_evaluations, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, p_need_shrink, d_problem_parameters, parameters.problem_type, parameters.benchmark_problem);		cudaDeviceSynchronize();
+		nelderMead_update<<< p, 1 >>>(p, dimension, p_evaluations, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, p_need_shrink, d_problem_parameters, parameters.problem_type, parameters.benchmark_problem, p_count1, p_count2, p_count3, p_count4);
 		cudaDeviceSynchronize();
-		//evaluations_used += thrust::reduce(d_evaluations.begin(), d_evaluations.end(), 0, thrust::plus<int>());
-		//thrust::fill(d_evaluations.begin(), d_evaluations.end(), 0);
-
+		
 		// /*p*/printEvaluationsHost(evaluations_used, 0);
-
         // /*p*/printSimplexHost(dimension, d_simplex, d_indexes, "Replacement");
 		
 		bool need_shrink = thrust::any_of(d_need_shrink.begin(), d_need_shrink.end(), thrust::identity<bool>());
 		
 		if(need_shrink){
-            // /*p*/printSimplexHost(dimension, d_simplex, d_indexes, "Pre Shrink");
+			// /*p*/printSimplexHost(dimension, d_simplex, d_indexes, "Pre Shrink");
 			nelderMead_shrink<<< dimension, dimension >>>(dimension, parameters.shrink_coef, p_simplex, p_indexes);
 			cudaDeviceSynchronize();
             // /*p*/printSimplexHost(dimension, d_simplex, d_indexes, "Shrink Case 3b (contraction worst than worst vertex)");
-
+			
 			thrust::sequence(d_indexes.begin(), d_indexes.end());
 			nelderMead_calculate_from_host(dimension + 1, parameters, h_problem_parameters, p_simplex, p_objective_function);
-			//evaluations_used += dimension + 1;
+			// /*e*/ evaluations_used += dimension + 1;
 			// /*p*/printEvaluationsHost(evaluations_used, dimension + 1);
 		}
 		
 		// /*p*/printObjFunctionHost(dimension, d_objective_function, d_indexes, "Objective Function");
 		thrust::sort_by_key(d_objective_function.begin(), d_objective_function.end(), d_indexes.begin());
+		
+		// /*p*/printSimplexHost(dimension, d_simplex, d_indexes, "End Iteration");	
 		// /*p*/printObjFunctionHost(dimension, d_objective_function, d_indexes, "Objective Function Sorted");
-
+		
 		// /*p*/printf("------------------ END ITERATION %d ------------------\n\n", i + 1);
 	}
+
+	// /*e*/ evaluations_used += thrust::reduce(d_evaluations.begin(), d_evaluations.end(), 0, thrust::plus<int>());
 
 	NelderMeadResult result;
 
@@ -266,6 +290,13 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 	for(int i = 0; i < dimension; i++){
 		result.best_vertex[i] = d_simplex[d_indexes[0] * dimension + i];
 	}
+
+	// /*c*/ thrust::host_vector<int> h_count(4);
+	// /*c*/ h_count[0] = thrust::reduce(d_count1.begin(), d_count1.end(), 0, thrust::plus<int>());
+	// /*c*/ h_count[1] = thrust::reduce(d_count2.begin(), d_count2.end(), 0, thrust::plus<int>());
+	// /*c*/ h_count[2] = thrust::reduce(d_count3.begin(), d_count3.end(), 0, thrust::plus<int>());
+	// /*c*/ h_count[3] = thrust::reduce(d_count4.begin(), d_count4.end(), 0, thrust::plus<int>());
+	// /*c*/ printf("case 1: %d, case 2: %d, case 3: %d, case 4: %d\n", h_count[0], h_count[1], h_count[2], h_count[3]);
 	
 	return result;
 }
