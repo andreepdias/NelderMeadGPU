@@ -264,7 +264,7 @@ void nelmin ( Real (*fn)(Real*), int n, Real start[], Real xmin[], Real *ynewlo,
 
 		
 		*ifault = 0;
-
+			/*
 		for (int i = 0; i < n; i++ ) {
 			del = step[i] * eps;
 			xmin[i] = xmin[i] + del;
@@ -295,6 +295,7 @@ void nelmin ( Real (*fn)(Real*), int n, Real start[], Real xmin[], Real *ynewlo,
 
 		del = eps;
 		*numres = *numres + 1;
+		*/
 		
 	}
 	return;
