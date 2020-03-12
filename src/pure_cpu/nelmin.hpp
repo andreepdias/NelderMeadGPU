@@ -83,10 +83,44 @@ void nelderMead_reflection(int dimension, int index_worst, float reflection_coef
 	}
 }
 
-void nelderMead_calculateVertex(){
-	obj_reflection = (*fn)( &reflection[0] );
-		evaluations_used = evaluations_used + 1;
+void nelderMead_calculateVertex(float (*fn)(float*), int &evaluations_used, float &obj, float * p_vertex){
+	obj = (*fn)( &p_vertex[0] );
+	evaluations_used = evaluations_used + 1;
 }
+
+void nelderMead_expansion(int dimension, float expansion_coef, float * p_centroid, float * p_reflection, float * p_expansion){
+
+	for (int i = 0; i < dimension; i++ ) {
+		p_expansion[i] = p_centroid[i] + expansion_coef * ( p_reflection[i] - p_centroid[i] );
+	}
+}
+
+void nelderMead_replacement(int dimension, int index, float * p_simplex, float * p_vertex, float obj, float * p_obj_function){
+
+	for (int i = 0; i < dimension; i++ ) { 
+		p_simplex[index * dimension + i] = p_vertex[i]; 
+	}
+	p_obj_function[index] = obj;
+}
+
+void nelderMead_contraction(int dimension, float contraction_coef, float * p_centroid, int index, float * p_simplex, float * p_vertex){
+
+	for (int i = 0; i < dimension; i++ ) {
+	 	p_vertex[i] = p_centroid[i] + contraction_coef * ( p_simplex[index * dimension + i] - p_centroid[i] );
+	}
+}
+
+void nelderMead_shrink(int dimension, int index_best, float * p_simplex){
+
+	for(int i = 0; i < dimension + 1; i++){
+
+		int stride = i * dimension;
+		for(int j = 0; j < dimension; j++){
+			p_simplex[stride + j] = (p_simplex[stride + j] + p_simplex[index_best * dimension + j]) * 0.5f;
+		}
+	}
+}
+
 
 float nelmin ( float (*fn)(float*), int dimension, float start[], float xmin[], float reqmin, int konvge, int iterations_number)
 {
@@ -141,29 +175,25 @@ float nelmin ( float (*fn)(float*), int dimension, float start[], float xmin[], 
 		//  Reflection through the centroid.
 		nelderMead_reflection(dimension, index_worst, reflection_coef, p_simplex, p_centroid, p_reflection);
 
-		obj_reflection = (*fn)( &reflection[0] );
-		evaluations_used = evaluations_used + 1;
+		nelderMead_calculateVertex(fn, evaluations_used, obj_reflection, p_reflection);
 		//  Successful reflection, so extension.
 		if ( obj_reflection < best ) {
-			for (int i = 0; i < dimension; i++ ) {
-				vertex[i] = centroid[i] + expansion_coef * ( reflection[i] - centroid[i] );
-			}
-			obj_vertex = (*fn)( &vertex[0] );
-			evaluations_used = evaluations_used + 1;
+
+			nelderMead_expansion(dimension, expansion_coef, p_centroid, p_reflection, p_vertex);
+			nelderMead_calculateVertex(fn, evaluations_used, obj_vertex, p_vertex);
+
 		//  Check extension.
-			if ( obj_reflection < obj_vertex ) {
-				for (int i = 0; i < dimension; i++ ) { 
-					simplex[i+index_worst* dimension] = reflection[i]; 
-				}
-				obj_function[index_worst] = obj_reflection;
+			if ( obj_vertex <  obj_reflection) {
+
+				nelderMead_replacement(dimension, index_worst, p_simplex, p_vertex, obj_vertex, p_obj_function);
 			} else { //  Retain extension or contraction.
-				for (int i = 0; i < dimension; i++ ) { 
-					simplex[i+index_worst* dimension] = vertex[i]; 
-				}
-				obj_function[index_worst] = obj_vertex;
+
+				nelderMead_replacement(dimension, index_worst, p_simplex, p_reflection, obj_reflection, p_obj_function);
 			}
 		} else { //  No extension.
 			l = 0;
+			
+			/* ??? */
 			for (int i = 0; i < dimension + 1; i++ ) {
 				if ( obj_reflection < obj_function[i] ) {
 					l += 1;
@@ -171,28 +201,21 @@ float nelmin ( float (*fn)(float*), int dimension, float start[], float xmin[], 
 			}
 
 			if ( 1 < l ) {
-				for (int i = 0; i < dimension; i++ ) { 
-					simplex[i+index_worst* dimension] = reflection[i]; 
-				}
-				obj_function[index_worst] = obj_reflection;
+
+				nelderMead_replacement(dimension, index_worst, p_simplex, p_reflection, obj_reflection, p_obj_function);
 			}
 			//  Contraction on the Y(index_worst) side of the centroid.
 			else if ( l == 0 ) {
-				for (int i = 0; i < dimension; i++ ) {
-					vertex[i] = centroid[i] + contraction_coef * ( simplex[i+index_worst* dimension] - centroid[i] );
-				}
-				obj_vertex = (*fn)( &vertex[0] );
-				evaluations_used = evaluations_used + 1;
+
+				nelderMead_contraction(dimension, contraction_coef, p_centroid, index_worst, p_simplex, p_vertex);
+				nelderMead_calculateVertex(fn, evaluations_used, obj_vertex, p_vertex);
+
 		//  Contract the whole simplex.
 				if ( obj_function[index_worst] < obj_vertex ) {
-					for (int j = 0; j < dimension + 1; j++ ) {
-						for (int i = 0; i < dimension; i++ ) {
-							simplex[i+j* dimension] = ( simplex[i+j* dimension] + simplex[i+index_best* dimension] ) * 0.5;
-							xmin[i] = simplex[i+j* dimension];
-						}
-						obj_function[j] = (*fn)( xmin );
-						evaluations_used = evaluations_used + 1;
-					}
+
+					nelderMead_shrink(dimension, index_best, p_simplex);
+					nelderMead_calculateSimplex(fn, dimension, evaluations_used, p_simplex, p_obj_function);
+
 					best = obj_function[0];
 					index_best = 0;
 				
