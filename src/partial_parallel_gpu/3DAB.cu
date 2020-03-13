@@ -162,7 +162,9 @@ struct ObjectiveFunction
         Calculate3DAB unary_op(p_angles, p_aminoacids, dimension, protein_length);
         thrust::plus<float> binary_op;
     
-        float result = thrust::transform_reduce(thrust::counting_iterator<unsigned int>(0), thrust::counting_iterator<unsigned int>(protein_length - 2), unary_op, 0.0f, binary_op);
+        thrust::counting_iterator<unsigned int> it1(0);
+
+        float result = thrust::transform_reduce(it1, it1 + (protein_length - 2), unary_op, 0.0f, binary_op);
 
         return result;
     }
