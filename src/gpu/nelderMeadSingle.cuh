@@ -153,7 +153,7 @@ __global__ void nelderMead_update(int k, int dimension, int * p_evaluations, flo
 		
 		if(p_obj_expansion[0] < best){
 			nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_expansion, p_indexes, p_objective_function, p_obj_expansion);
-			//cudaDeviceSynchronize();
+			cudaDeviceSynchronize();
 		}else{
 			nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, p_indexes, p_objective_function, p_obj_reflection);
 			//cudaDeviceSynchronize();

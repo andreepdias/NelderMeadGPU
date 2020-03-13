@@ -55,6 +55,7 @@ struct ABOffLattice{
 
     int protein_length;
     std::string aa_sequence;
+    
     const char * aminoacid_sequence;
     
     thrust::device_vector<float> d_aminoacid_position;

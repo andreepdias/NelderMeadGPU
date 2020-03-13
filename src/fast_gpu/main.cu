@@ -76,8 +76,8 @@ int main() {
         strcpy(aa_sequence, (*parametersAB).aminoacid_sequence);
         cudaMemcpyToSymbol(aminoacid_sequence, (void *) aa_sequence, 150 * sizeof(char));
 
-        (*parametersAB).d_aminoacid_sequence.resize((*parametersAB).protein_length * 3);
-        (*parametersAB).p_aminoacid_sequence = thrust::raw_pointer_cast(&(*parametersAB).d_aminoacid_sequence[0]);
+        (*parametersAB).d_aminoacid_position.resize((*parametersAB).protein_length * 3);
+        (*parametersAB).p_aminoacid_position = thrust::raw_pointer_cast(&(*parametersAB).d_aminoacid_position[0]);
 
         cudaEventRecord(start);
 
@@ -88,7 +88,6 @@ int main() {
         cudaEventElapsedTime(&elapsed_time, start, stop);
         
         printf("Best: %.7f\n", result.best);
-
 
         if(parameters.show_best_vertex){
             printf("Best Vertex:\n");

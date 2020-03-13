@@ -29,7 +29,7 @@ copy_input:
 	scp resources/inputs/input.txt server:NelderMeadGPU/resources/inputs/
 
 test:
-	nvcc -arch=sm_60 -std=c++11 -O3  -use_fast_math test.cu -rdc=true -lcudadevrt -o test
+	nvcc -arch=sm_60 -std=c++11 -O3  -use_fast_math test.cu -o test
 
 clean:
 	rm -f cpu
