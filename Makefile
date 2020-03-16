@@ -17,7 +17,7 @@ fcpu:
 	g++ src/fast_cpu/main.cpp -std=c++11 -O3 -o fcpu
 
 fgpu:
-	nvcc -arch=sm_60 -std=c++11 -O3  -use_fast_math src/fast_gpu/main.cu -o fgpu
+	nvcc -arch=sm_60 -std=c++11 -O3 -use_fast_math src/fast_gpu/main.cu -o fgpu
 
 gpu:
 	nvcc -arch=sm_60 -std=c++11 -O3  -use_fast_math src/gpu/main.cu -rdc=true -lcudadevrt -o gpu
