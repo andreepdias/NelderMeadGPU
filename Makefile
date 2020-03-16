@@ -35,3 +35,5 @@ clean:
 	rm -f cpu
 	rm -f gpu
 	rm -f test
+	rm -f fgpu
+	rm -f fcpu

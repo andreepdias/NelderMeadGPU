@@ -215,7 +215,7 @@ __global__ void nelderMead_reflection(int dimension, float reflection_coef, floa
 	}
 }
 
-__global__ void nelderMead_expansion(int dimension, float expansion_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion){
+__global__ void nelderMead_expansion(int dimension, float expansion_coef, float * p_centroid, float * p_reflection, float * p_expansion){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
@@ -223,7 +223,7 @@ __global__ void nelderMead_expansion(int dimension, float expansion_coef, float 
 	int index = blockId * 32 + threadId; 
 
 	if(index < dimension){
-		p_expansion[index] = p_reflection[index] + expansion_coef * (p_reflection[index] - p_centroid[index]);
+		p_expansion[index] = p_centroid[index] + expansion_coef * (p_reflection[index] - p_centroid[index]);
 	}
 }
 
@@ -364,7 +364,7 @@ NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters =
 		
 		if(obj_reflection < best){
 			
-			nelderMead_expansion<<< numberBlocks, 32 >>>(dimension, parameters.expansion_coef, p_simplex, p_centroid, p_reflection, p_vertex);
+			nelderMead_expansion<<< numberBlocks, 32 >>>(dimension, parameters.expansion_coef, p_centroid, p_reflection, p_vertex);
 			cudaDeviceSynchronize();
 			
 			// /*p*/printVertex(dimension, d_vertex, "Expansion");
