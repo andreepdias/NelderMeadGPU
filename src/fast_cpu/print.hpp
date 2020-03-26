@@ -24,7 +24,7 @@ void printSimplex(int dimension, float * p_simplex, const char * msg){
 void printObjFunction(int dimension, float * p_obj, const char * msg){
 	printf("%s:\n", msg);
 	for(int i = 0; i < dimension + 1; i++){
-		printf("%2d. %.10f\n", i + 1, p_obj[i]);
+		printf("%2d. %.10f\n", i, p_obj[i]);
 	}
 	printf("\n");
 }

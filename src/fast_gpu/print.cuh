@@ -29,7 +29,7 @@ void printObjFunction(int dimension, thrust::device_vector<float> &d_objective_f
 
 	printf("%s\n", msg);
 	for(int i = 0; i < dimension + 1; i++){
-		printf("%2d. %.10f\n", i + 1, h_objective_function[i]);
+		printf("%2d. %.10f\n", i, h_objective_function[i]);
 	}
 	printf("\n");
 }

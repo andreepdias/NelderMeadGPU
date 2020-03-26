@@ -40,6 +40,8 @@ struct ABOffLattice{
     std::string aa_sequence;
 	const char * aminoacid_sequence;
 
+    std::string protein_name;
+
 };
 
 struct NelderMead{
@@ -142,6 +144,7 @@ void readInputABOffLatttice(NelderMead &parameters, ABOffLattice * &parametersAB
 
     parameters.dimension = angles.size();
 
+    (*parametersAB).protein_name = protein_name;
     (*parametersAB).aa_sequence = protein_chain;
     (*parametersAB).aminoacid_sequence = (*parametersAB).aa_sequence.c_str();
     (*parametersAB).protein_length = protein_chain.size();

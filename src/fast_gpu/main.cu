@@ -2,6 +2,24 @@
 #include "util.cuh"
 #include "nelmin.cuh"
 
+void printParameters(NelderMead &parameters, ABOffLattice * & parametersAB){
+    
+    printf("\n-------------------- PARAMETERS --------------------\n");
+    printf("Executions: %d\n", parameters.executions_number);
+    printf("Iterations: %d\n", parameters.iterations_number);
+    printf("Dimension:  %d\n", parameters.dimension);
+    printf("----------------------------------------------------\n");
+    
+    if(parameters.problem_type == AB_OFF_LATTICE){
+        
+        printf("Protein Name:   "); std::cout << parametersAB->protein_name << std::endl;
+        printf("Protein Length: %d\n", parametersAB->protein_length);
+        printf("Protein Chain:  %s\n", parametersAB->aminoacid_sequence);
+        printf("----------------------------------------------------\n");
+    }
+
+
+}
 
 int main() {
 
@@ -17,11 +35,7 @@ int main() {
         return 1;
     }
 
-    printf("-------------------- PARAMETERS --------------------\n");
-    printf("Executions: %d\n", parameters.executions_number);
-    printf("Iterations: %d\n", parameters.iterations_number);
-    printf("Dimension:  %d\n", parameters.dimension);
-    printf("----------------------------------------------------\n");
+    printParameters(parameters, parametersAB);
 
     cudaEvent_t start, stop;
 
@@ -78,6 +92,8 @@ int main() {
 
         (*parametersAB).d_aminoacid_position.resize((*parametersAB).protein_length * 3);
         (*parametersAB).p_aminoacid_position = thrust::raw_pointer_cast(&(*parametersAB).d_aminoacid_position[0]);
+        
+        (*parametersAB).h_aminoacid_position.resize((*parametersAB).protein_length * 3);
 
         cudaEventRecord(start);
 

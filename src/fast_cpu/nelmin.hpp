@@ -31,9 +31,13 @@ struct Calculate3DAB{
 
         float sum = 0.0f, c, d, dx, dy, dz;
 
+		float s = 0.0f;
+
         sum += (1.0f - cosf(p_vertex[id])) / 4.0f;
 
         for(int i = id + 2; i < protein_length; i++){
+
+			s = 0;
 
             if(aminoacid_sequence[id] == 'A' && aminoacid_sequence[i] == 'A')
                 c = 1.0;
@@ -46,8 +50,9 @@ struct Calculate3DAB{
             dy = aminoacid_position[id + protein_length] - aminoacid_position[i + protein_length];
             dz = aminoacid_position[id + protein_length * 2] - aminoacid_position[i + protein_length * 2];
             d = sqrtf( (dx * dx) + (dy * dy) + (dz * dz) );
-            
-            sum += 4.0f * ( 1.0f / powf(d, 12.0f) - c / powf(d, 6.0f) );
+
+            s += 4.0f * ( 1.0f / powf(d, 12.0f) - c / powf(d, 6.0f) );
+			sum += s;
                 
         }
         return sum;
@@ -84,6 +89,7 @@ float calculate3DABOffLattice(float * p_vertex, void * problem_parameters){
 	std::vector<float> aminoacid_position(protein_length * 3);
 	
 	calculateCoordinates(p_vertex, &aminoacid_position[0], protein_length);
+
 	Calculate3DAB unary_op(p_vertex, &aminoacid_position[0], (*parametersAB).aminoacid_sequence, protein_length);
 
 	float sum = 0;
@@ -263,7 +269,7 @@ NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters =
 
 		nelderMead_findWorst(dimension, worst, index_worst, p_obj_function);
 		
-		// /*p*/printf("worst: %.5f, index_worst: %d\n\n", worst, index_worst);
+		// /*p*/printf("%d. worst: %.5f, index_worst: %d\n", k, worst, index_worst);
 
 		nelderMead_centroid(dimension, index_worst, p_simplex, p_centroid);
 
@@ -300,7 +306,7 @@ NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters =
 					c++;
 				}
 			}
-			// /*p*/printf("c: %d\n\n", c);
+			// /*p*/printf("%d. c: %d\n", k, c);
 
 			/* Se reflection melhor que segundo pior vértice (e pior) */
 			if(c >= 2){

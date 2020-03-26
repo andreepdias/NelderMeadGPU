@@ -14,10 +14,7 @@
 #include <thrust/fill.h>
 #include <thrust/iterator/counting_iterator.h>
 
-
-
 #include <cooperative_groups.h>
-
 
 /* C++ imports */
 #include <cmath>
@@ -55,12 +52,14 @@ struct ABOffLattice{
 
     int protein_length;
     std::string aa_sequence;
+    std::string protein_name;
     
     const char * aminoacid_sequence;
     
     thrust::device_vector<float> d_aminoacid_position;
     float * p_aminoacid_position;
-
+    
+    thrust::host_vector<float> h_aminoacid_position;
 };
 
 struct NelderMead{
@@ -151,6 +150,7 @@ void readInputABOffLatttice(NelderMead &parameters, ABOffLattice * &parametersAB
 
     parameters.dimension = angles.size();
 
+    (*parametersAB).protein_name = protein_name;
     (*parametersAB).aa_sequence = protein_chain;
     (*parametersAB).aminoacid_sequence = (*parametersAB).aa_sequence.c_str();
     (*parametersAB).protein_length = protein_chain.size();

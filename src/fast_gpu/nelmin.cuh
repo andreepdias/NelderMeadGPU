@@ -12,86 +12,6 @@
 // http://people.sc.fsu.edu/~jburkardt/c_src/asa047/asa047.html
 
 
-struct Calculate3DAB{
-    int protein_length;
-
-    float * p_vertex;
-    float * p_aminoacid_position;
-
-    Calculate3DAB(float * _p_vertex, float * _p_aminoacid_position, int _protein_length){
-        p_vertex = _p_vertex, 
-		p_aminoacid_position = _p_aminoacid_position, 
-		protein_length = _protein_length;
-	}
-    
-    __device__ float operator()(const unsigned int& id) const { 
-
-        float sum = 0.0f, c, d, dx, dy, dz;
-
-        sum += (1.0f - cosf(p_vertex[id])) / 4.0f;
-
-        for(int i = id + 2; i < protein_length; i++){
-
-            if(aminoacid_sequence[id] == 'A' && aminoacid_sequence[i] == 'A')
-                c = 1.0;
-            else if(aminoacid_sequence[id] == 'B' && aminoacid_sequence[i] == 'B')
-                c = 0.5;
-            else
-                c = -0.5;
-
-            dx = p_aminoacid_position[id] - p_aminoacid_position[i];
-            dy = p_aminoacid_position[id + protein_length] - p_aminoacid_position[i + protein_length];
-            dz = p_aminoacid_position[id + protein_length * 2] - p_aminoacid_position[i + protein_length * 2];
-            d = sqrtf( (dx * dx) + (dy * dy) + (dz * dz) );
-            
-            sum += 4.0f * ( 1.0f / powf(d, 12.0f) - c / powf(d, 6.0f) );
-                
-        }
-        return sum;
-    }
-};
-
-
-__global__ void calculateCoordinates(float * p_vertex, float * p_aminoacid_position, int protein_length){
-
-	//p_vertex on shared?
-
-	p_aminoacid_position[0] = 0.0f;
-	p_aminoacid_position[0 + protein_length] = 0.0f;
-	p_aminoacid_position[0 + protein_length * 2] = 0.0f;
-
-	p_aminoacid_position[1] = 0.0f;
-	p_aminoacid_position[1 + protein_length] = 1.0f; 
-	p_aminoacid_position[1 + protein_length * 2] = 0.0f;
-
-	p_aminoacid_position[2] = cosf(p_vertex[0]);
-	p_aminoacid_position[2 + protein_length] = sinf(p_vertex[0]) + 1.0f;
-	p_aminoacid_position[2 + protein_length * 2] = 0.0f;
-
-	for(int i = 3; i < protein_length; i++){
-		p_aminoacid_position[i] = p_aminoacid_position[i - 1] + cosf(p_vertex[i - 2]) * cosf(p_vertex[i + protein_length - 5]); // i - 3 + protein_length - 2
-		p_aminoacid_position[i + protein_length] = p_aminoacid_position[i - 1 + protein_length] + sinf(p_vertex[i - 2]) * cosf(p_vertex[i + protein_length - 5]);
-		p_aminoacid_position[i + protein_length * 2] = p_aminoacid_position[i - 1 + protein_length * 2] + sinf(p_vertex[i + protein_length - 5]);
-	}
-}
-
-float calculate3DABOffLattice(int dimension, float * p_vertex, void * problem_parameters){
-
-	ABOffLattice * parametersAB = (ABOffLattice*)problem_parameters;
-	int protein_length = (*parametersAB).protein_length;
-	
-	calculateCoordinates<<<1, 1>>>(p_vertex, (*parametersAB).p_aminoacid_position, protein_length);
-	cudaDeviceSynchronize();
-	
-	Calculate3DAB unary_op(p_vertex, (*parametersAB).p_aminoacid_position, protein_length);
-	thrust::plus<float> binary_op;
-	
-	float result = thrust::transform_reduce(thrust::counting_iterator<unsigned int>(0), thrust::counting_iterator<unsigned int>(protein_length - 2), unary_op, 0.0f, binary_op);
-
-	return result;
-}
-
-
 __global__ void nelderMead_initialize(int dimension, float step, float * start, float * p_simplex){
 
     int blockId = blockIdx.x;
@@ -105,38 +25,253 @@ __global__ void nelderMead_initialize(int dimension, float step, float * start, 
 	}
 }
 
-void nelderMead_calculateSimplex(int dimension, int &evaluations_used, float * p_simplex, thrust::device_vector<float> &d_obj_function, void * problem_parameters = NULL){
+void nelderMead_calculateVertex(int dimension, int &evaluations_used, float &h_obj, float * p_vertex, void * problem_parameters, float * obj){
+	
+	calculate3DABOffLattice(dimension, p_vertex, problem_parameters, obj);
+	evaluations_used = evaluations_used + 1;
 
-	for(int i =  0; i < dimension + 1; i++){
-		d_obj_function[i] = calculate3DABOffLattice(dimension, p_simplex + (i * dimension), problem_parameters);
+	h_obj = *obj;
+}
 
-		// p_obj_function[i] = (*fn)(p_simplex + (i * dimension));
-		evaluations_used += 1;
+
+__device__ void atomicMax(float* const address, const float value)
+{
+	if (*address >= value)
+	{
+		return;
+	}
+
+	int* const addressAsI = (int*)address;
+	int old = *addressAsI;
+	int assumed;
+
+	do 
+	{
+		assumed = old;
+
+		if (__int_as_float(assumed) >= value)
+		{
+			break;
+		}
+
+		old = atomicCAS(addressAsI, assumed, __float_as_int(value));
+	} while (assumed != old);
+}
+
+__global__ void findMax(const float* __restrict__ input, const int size, float * out, int * outIdx)
+{
+	int index = threadIdx.x + blockIdx.x * blockDim.x;
+
+	__shared__ float threads_max[32];
+	__shared__ int   threads_id[32];
+	
+	int threadId = threadIdx.x;
+
+	if(index < size){
+		
+		threads_max[threadId] = input[index];
+		threads_id[threadId] = index;
+	  
+		__syncthreads();
+	
+	  
+		if(threadId < 16 && threadId + 16 < 32){
+			if(threads_max[threadId] < threads_max[threadId + 16]){
+				threads_max[threadId] = threads_max[threadId + 16];
+				threads_id[threadId] = threads_id[threadId + 16];
+			}
+		}  
+		__syncthreads();
+	  
+		if(threadId < 8 && threadId + 8 < 32){
+			if(threads_max[threadId] < threads_max[threadId + 8]){
+				threads_max[threadId] = threads_max[threadId + 8];
+				threads_id[threadId] = threads_id[threadId + 8];
+			}
+		}  
+		__syncthreads();
+	  
+		if(threadId < 4 && threadId + 4 < 32){
+			if(threads_max[threadId] < threads_max[threadId + 4]){
+				threads_max[threadId] = threads_max[threadId + 4];
+				threads_id[threadId] = threads_id[threadId + 4];
+			}
+		}  
+		__syncthreads();
+	  
+		if(threadId < 2 && threadId + 2 < 32){
+			if(threads_max[threadId] < threads_max[threadId + 2]){
+				threads_max[threadId] = threads_max[threadId + 2];
+				threads_id[threadId] = threads_id[threadId + 2];
+			}
+		}  
+		__syncthreads();
+	
+		if(threadId < 1 && threadId + 1 < 32){
+			if(threads_max[threadId] < threads_max[threadId + 1]){
+				threads_max[threadId] = threads_max[threadId + 1];
+				threads_id[threadId] = threads_id[threadId + 1];
+			}		
+		}
+		__syncthreads();
+		
+		if (threadIdx.x == 0)
+		{
+			atomicMax(out, threads_max[0]);
+
+			cooperative_groups::grid_group g = cooperative_groups::this_grid();
+			g.sync();
+
+			if(*out == threads_max[0]){
+				*outIdx = threads_id[0];
+			}
+		}
 	}
 }
 
-void nelderMead_calculateVertex(int dimension, int &evaluations_used, float &obj, float * p_vertex, void * problem_parameters = NULL){
-	
-	obj = calculate3DABOffLattice(dimension, p_vertex, problem_parameters);
-	evaluations_used = evaluations_used + 1;
-	// obj = (*fn)( &p_vertex[0] );
+
+__device__ void atomicMin(float* const address, const float value)
+{
+	if (*address <= value)
+	{
+		return;
+	}
+
+	int* const addressAsI = (int*)address;
+	int old = *addressAsI;
+	int assumed;
+
+	do 
+	{
+		assumed = old;
+
+		if (__int_as_float(assumed) <= value)
+		{
+			break;
+		}
+
+		old = atomicCAS(addressAsI, assumed, __float_as_int(value));
+	} while (assumed != old);
 }
 
 
-void nelderMead_findBest(int dimension, float &best, int &index_best, thrust::device_vector<float> &d_obj_function){
+__global__ void findMin(const float* __restrict__ input, const int size, float * out, int * outIdx)
+{
+	int index = threadIdx.x + blockIdx.x * blockDim.x;
 
-	thrust::device_vector<float>::iterator it = thrust::min_element(d_obj_function.begin(), d_obj_function.end());
+	__shared__ float threads_min[32];
+	__shared__ int   threads_id[32];
 	
-	index_best = it - d_obj_function.begin();
-	best = *it;
+	int threadId = threadIdx.x;
+
+	if(index < size){
+		
+		threads_min[threadId] = input[index];
+		threads_id[threadId] = index;
+	  
+		__syncthreads();
+	
+	  
+		if(threadId < 16 && threadId + 16 < 32){
+			if(threads_min[threadId] > threads_min[threadId + 16]){
+				threads_min[threadId] = threads_min[threadId + 16];
+				threads_id[threadId] = threads_id[threadId + 16];
+			}
+		}  
+		__syncthreads();
+	  
+		if(threadId < 8 && threadId + 8 < 32){
+			if(threads_min[threadId] > threads_min[threadId + 8]){
+				threads_min[threadId] = threads_min[threadId + 8];
+				threads_id[threadId] = threads_id[threadId + 8];
+			}
+		}  
+		__syncthreads();
+	  
+		if(threadId < 4 && threadId + 4 < 32){
+			if(threads_min[threadId] > threads_min[threadId + 4]){
+				threads_min[threadId] = threads_min[threadId + 4];
+				threads_id[threadId] = threads_id[threadId + 4];
+			}
+		}  
+		__syncthreads();
+	  
+		if(threadId < 2 && threadId + 2 < 32){
+			if(threads_min[threadId] > threads_min[threadId + 2]){
+				threads_min[threadId] = threads_min[threadId + 2];
+				threads_id[threadId] = threads_id[threadId + 2];
+			}
+		}  
+		__syncthreads();
+	
+		if(threadId < 1 && threadId + 1 < 32){
+			if(threads_min[threadId] > threads_min[threadId + 1]){
+				threads_min[threadId] = threads_min[threadId + 1];
+				threads_id[threadId] = threads_id[threadId + 1];
+			}		
+		}
+		__syncthreads();
+		
+		if (threadIdx.x == 0)
+		{
+			atomicMin(out, threads_min[0]);
+
+			cooperative_groups::grid_group g = cooperative_groups::this_grid();
+			g.sync();
+
+			if(*out == threads_min[0]){
+				*outIdx = threads_id[0];
+			}
+		}
+	}
 }
 
-void nelderMead_findWorst(int dimension, float &worst, int &index_worst, thrust::device_vector<float> &d_obj_function){
 
-	thrust::device_vector<float>::iterator it = thrust::max_element(d_obj_function.begin(), d_obj_function.end());
+void nelderMead_findBest(int dimension, int numberBlocks,float &best, int &index_best, float * p_obj_function, float * obj, int * idx, thrust::device_vector<float> &d_obj_function){
+
+	findMin <<< numberBlocks, 32 >>>(p_obj_function, dimension + 1, obj, idx);
+	cudaDeviceSynchronize();
 	
-	index_worst = it - d_obj_function.begin();
-	worst = *it;
+	best = *obj;
+	index_best = *idx;
+}
+
+void nelderMead_findWorst(int dimension, int numberBlocks, float &worst, int &index_worst, float * p_obj_function, float * obj, int * idx, thrust::device_vector<float> &d_obj_function){
+
+	findMax <<< numberBlocks, 32 >>>(p_obj_function, dimension + 1, obj, idx);
+	cudaDeviceSynchronize();
+	
+	worst = *obj;
+	index_worst = *idx;
+	
+}
+
+
+__global__ void countIf(int * count, const float * __restrict__ p_obj_function, const int dimension, const float obj_reflection) {
+  
+	__shared__ int sharedInc;
+
+	float obj;
+	int index =  threadIdx.x + blockIdx.x * blockDim.x;
+
+	if (threadIdx.x == 0){
+		sharedInc = 0;
+	}
+	__syncthreads();
+
+	if(index < dimension) {
+		obj = p_obj_function[index];
+		
+		if(obj_reflection < obj){
+			atomicAdd(&sharedInc, 1);
+		}
+	}
+	__syncthreads();
+
+	if(threadIdx.x == 0){
+		atomicAdd(count, sharedInc);
+	}
+	
 }
 
 
@@ -289,15 +424,16 @@ struct count_better_than_reflection{
 };
 
 
-void nelderMead_calculate_from_host(int blocks, NelderMead &p, void * h_problem_p, float * p_simplex, float * p_obj_function,  bool is_specific_block = false, int specific_block = 0){
+void nelderMead_calculate_from_host(int blocks, NelderMead &p, void * h_problem_p, float * p_simplex, float * p_obj_function){
+
+	p.evaluations_used += blocks;
 
 	if(p.problem_type == AB_OFF_LATTICE){
-
 		
 		ABOffLattice * h_problem_parameters = (ABOffLattice*)h_problem_p;
 		int threads = (*h_problem_parameters).protein_length - 2;
 
-		calculateABOffLattice<<< blocks, threads >>>(p.dimension, h_problem_parameters->protein_length, p_simplex, p_obj_function, is_specific_block, specific_block);
+		calculateABOffLattice<<< blocks, threads >>>(p.dimension, h_problem_parameters->protein_length, p_simplex, p_obj_function);
 		cudaDeviceSynchronize();
 		
 	}else if(p.problem_type == BENCHMARK){
@@ -307,17 +443,18 @@ void nelderMead_calculate_from_host(int blocks, NelderMead &p, void * h_problem_
 		
 		switch(p.benchmark_problem){
 			case SQUARE:
-				calculateSquare<<< blocks, threads >>>(p.dimension, p_simplex, p_obj_function, is_specific_block, specific_block);
+				calculateSquare<<< blocks, threads >>>(p.dimension, p_simplex, p_obj_function);
 				cudaDeviceSynchronize();
 				break;
 			case SUM:
-				calculateAbsoluteSum<<< blocks, threads >>>(p.dimension, p_simplex, p_obj_function, is_specific_block, specific_block);
+				calculateAbsoluteSum<<< blocks, threads >>>(p.dimension, p_simplex, p_obj_function);
 				cudaDeviceSynchronize();
 				break;
 		}
 	}
-
 }
+
+
 
 
 NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters = NULL)
@@ -355,112 +492,110 @@ NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters =
 	
 	float * p_obj_function 	= thrust::raw_pointer_cast(&d_obj_function[0]);
 
+	thrust::host_vector<float> h_vertex(dimension);
+
+	float * obj;
+	cudaMallocManaged(&obj, sizeof(float));
+	cudaMemset(obj, 0.0f, sizeof(float));
+	
+	int * idx;
+	cudaMallocManaged(&idx, sizeof(int));
+	cudaMemset(idx, 0, sizeof(int));
+
+	int * count;
+	cudaMallocManaged(&count, sizeof(int));
+	cudaMemset(count, 0, sizeof(int));
+
+
 	thrust::copy(parameters.p_start, parameters.p_start + dimension, d_start.begin());	
 	
 	nelderMead_initialize<<< dimension + 1, dimension >>>(dimension, parameters.step, p_start, p_simplex);
 	cudaDeviceSynchronize();
 
-	//nelderMead_calculateSimplex(dimension, parameters.evaluations_used, p_simplex, d_obj_function, problem_parameters);
 	nelderMead_calculate_from_host(dimension + 1, parameters, problem_parameters, p_simplex, p_obj_function);
-
 	
-	nelderMead_findBest(dimension, best, index_best, d_obj_function);
+	int numberBlocks = ceil((float)dimension / 32.0f);
 
+	*idx = index_best = index_worst = 0;
+	*obj = best = worst = d_obj_function[0];
 
-	int numberBlocks = ceil(dimension / 32.0f);
+	nelderMead_findBest(dimension, numberBlocks, best, index_best, p_obj_function, obj, idx, d_obj_function);
 	
 	for (int k = 0; k < parameters.iterations_number; k++) {
-		
 
+		*obj = best;
+		nelderMead_findWorst(dimension, numberBlocks, worst, index_worst, p_obj_function, obj, idx, d_obj_function);
 
-		nelderMead_findWorst(dimension, worst, index_worst, d_obj_function);
-
-		
 		nelderMead_centroid<<< dimension, dimension + 1>>>(dimension, index_worst, p_simplex, p_centroid);
 		cudaDeviceSynchronize();
-
 		
 		nelderMead_reflection<<< numberBlocks, 32 >>>(dimension, parameters.reflection_coef, p_simplex, index_worst, p_centroid, p_reflection);
 		cudaDeviceSynchronize();
 		
 		
-		nelderMead_calculateVertex(dimension, parameters.evaluations_used, obj_reflection, p_reflection, problem_parameters);
-		
-		
+		nelderMead_calculateVertex(dimension, parameters.evaluations_used, obj_reflection, p_reflection, problem_parameters, obj);
+
 		if(obj_reflection < best){
 			
 			nelderMead_expansion<<< numberBlocks, 32 >>>(dimension, parameters.expansion_coef, p_centroid, p_reflection, p_vertex);
 			cudaDeviceSynchronize();
 			
-			
-			nelderMead_calculateVertex(dimension, parameters.evaluations_used, obj_vertex, p_vertex, problem_parameters);
-			
+			nelderMead_calculateVertex(dimension, parameters.evaluations_used, obj_vertex, p_vertex, problem_parameters, obj);
 
 			if(obj_vertex < best){
+
 				nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_vertex, index_worst, p_obj_function, obj_vertex);
 				cudaDeviceSynchronize();
-
 			}else{
 				nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, index_worst, p_obj_function, obj_reflection);
 				cudaDeviceSynchronize();
-				
 			}
 		}else{
-			
-			count_better_than_reflection unary_op(obj_reflection);
-			int c = thrust::count_if(thrust::device, d_obj_function.begin(), d_obj_function.end(), unary_op);
+			*count = 0;
+			countIf<<< numberBlocks, 32 >>>(count, p_obj_function, dimension, obj_reflection);
+			cudaDeviceSynchronize();
 
-			
 			/* Se reflection melhor que segundo pior vértice (e pior) */
-			if(c >= 2){
+			if(*count >= 2){
+
 				nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, index_worst, p_obj_function, obj_reflection);
 				cudaDeviceSynchronize();
-
 			}else{
 				if(obj_reflection < worst){
 					
 					nelderMead_contraction<<< numberBlocks, 32 >>>(dimension, parameters.contraction_coef, p_centroid, 0, p_reflection, p_vertex);
 					cudaDeviceSynchronize();
-
-					
 				}else{
 					nelderMead_contraction<<< numberBlocks, 32 >>>(dimension, parameters.contraction_coef, p_centroid, index_worst, p_simplex, p_vertex);
 					cudaDeviceSynchronize();
-
 				}
-				nelderMead_calculateVertex(dimension, parameters.evaluations_used, obj_vertex, p_vertex, problem_parameters);
-				
+				nelderMead_calculateVertex(dimension, parameters.evaluations_used, obj_vertex, p_vertex, problem_parameters, obj);
+
 				if(obj_vertex < obj_reflection and obj_vertex < worst){
 					
 					nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_vertex, index_worst, p_obj_function, obj_vertex);
 					cudaDeviceSynchronize();
 
-					
 				}else if(obj_reflection < worst){
 					
 					nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, index_worst, p_obj_function, obj_reflection);
 					cudaDeviceSynchronize();
-					
 				}else{
-					
 					nelderMead_shrink<<< dimension + 1, dimension >>>(dimension, parameters.shrink_coef, p_simplex, index_best);
 					cudaDeviceSynchronize();
 					
-
-					//nelderMead_calculateSimplex(dimension, parameters.evaluations_used, p_simplex, d_obj_function, problem_parameters);
 					nelderMead_calculate_from_host(dimension + 1, parameters, problem_parameters, p_simplex, p_obj_function);
 
-					
-					nelderMead_findBest(dimension, best, index_best, d_obj_function);
-
-
+					*obj = best;
+					*idx = index_best;
+					nelderMead_findBest(dimension, numberBlocks, best, index_best, p_obj_function, obj, idx, d_obj_function);
 				}
 			}
 		}
-		
 		if (d_obj_function[index_worst] < best){ 
 			best = d_obj_function[index_worst]; 
 			index_best = index_worst; 
+
 		}
 	}
 	
