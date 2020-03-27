@@ -43,15 +43,25 @@ __global__ void nelderMead_initialize(const int dimension, const float step, con
 
     int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
-	int index = threadId + blockId * dimension;
+	int index = threadId * dimension + blockId;
 	
-	float s = p_start[threadId];
-	
-	p_simplex[index] = s;
+	__shared__ float s;
+	float l;
+
+	if(threadId == 0){
+		s = p_start[blockId];
+	}
+	__syncthreads();
+
+	l = s;	
 	
 	if(threadId == blockId){
-		p_simplex[index] = s + step;
+		l += step;
 	}
+	__syncthreads();
+
+	p_simplex[index] = l;
+	
 }
 
 __global__ void nelderMead_centroid(const int dimension, const int index_worst, const float * __restrict__ p_simplex, float * p_centroid){
@@ -249,7 +259,7 @@ NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters =
 
 	thrust::copy(parameters.p_start, parameters.p_start + dimension, d_start.begin());	
 	
-	nelderMead_initialize<<< dimension + 1, dimension >>>(dimension, parameters.step, p_start, p_simplex);
+	nelderMead_initialize<<< dimension, dimension + 1 >>>(dimension, parameters.step, p_start, p_simplex);
 	cudaDeviceSynchronize();
 
 	nelderMead_calculateSimplex(dimension + 1, dimension, parameters.evaluations_used, p_obj_function, p_simplex, problem_parameters);
