@@ -1,3 +1,4 @@
+#pragma once
 
 void printVertex(int dimension, thrust::device_vector<float> &d_vertex, const char * msg){
 	thrust::host_vector<float> h_vertex = d_vertex;

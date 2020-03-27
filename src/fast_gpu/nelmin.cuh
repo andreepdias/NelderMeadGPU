@@ -1,233 +1,26 @@
-#ifndef NELMIN_H
-#define NELMIN_H
+#pragma once
 
 #include "util.cuh"
 #include "print.cuh"
 #include "objectiveFunctions.cuh"
+#include "reductions.cuh"
 
-
-// Nelder-Mead Minimization Algorithm ASA047
-// from the Applied Statistics Algorithms available
-// in STATLIB. Adapted from the C version by J. Burkhardt
-// http://people.sc.fsu.edu/~jburkardt/c_src/asa047/asa047.html
-
-
-__global__ void nelderMead_initialize(int dimension, float step, float * start, float * p_simplex){
-
-    int blockId = blockIdx.x;
-    int threadId = threadIdx.x;
-    int stride = blockId * dimension;
-
-	p_simplex[stride +  threadId] = start[threadId];
+void nelderMead_calculateVertex(const int dimension, int &evaluations_used, float &h_obj, const float * p_vertex, const void * problem_parameters, float * obj){
 	
-	if(threadId == blockId){
-		p_simplex[stride +  threadId] = start[threadId] + step;
-	}
-}
-
-void nelderMead_calculateVertex(int dimension, int &evaluations_used, float &h_obj, float * p_vertex, void * problem_parameters, float * obj){
-	
-	calculate3DABOffLattice(dimension, p_vertex, problem_parameters, obj);
-	evaluations_used = evaluations_used + 1;
+	calculateSingle3DABOffLattice(dimension, p_vertex, problem_parameters, obj);
+	evaluations_used += 1;
 
 	h_obj = *obj;
 }
 
 
-__device__ void atomicMax(float* const address, const float value)
-{
-	if (*address >= value)
-	{
-		return;
-	}
+void nelderMead_calculateSimplex(const int blocks, const int dimension, int &evaluations_used, float * p_obj_function, const float * p_simplex, const void * problem_parameters){
 
-	int* const addressAsI = (int*)address;
-	int old = *addressAsI;
-	int assumed;
-
-	do 
-	{
-		assumed = old;
-
-		if (__int_as_float(assumed) >= value)
-		{
-			break;
-		}
-
-		old = atomicCAS(addressAsI, assumed, __float_as_int(value));
-	} while (assumed != old);
+	calculateMulti3DABOffLattice(blocks, dimension, p_simplex, p_obj_function, problem_parameters);
+	evaluations_used += blocks;
 }
 
-__global__ void findMax(const float* __restrict__ input, const int size, float * out, int * outIdx)
-{
-	int index = threadIdx.x + blockIdx.x * blockDim.x;
-
-	__shared__ float threads_max[32];
-	__shared__ int   threads_id[32];
-	
-	int threadId = threadIdx.x;
-
-	if(index < size){
-		
-		threads_max[threadId] = input[index];
-		threads_id[threadId] = index;
-	  
-		__syncthreads();
-	
-	  
-		if(threadId < 16 && threadId + 16 < 32){
-			if(threads_max[threadId] < threads_max[threadId + 16]){
-				threads_max[threadId] = threads_max[threadId + 16];
-				threads_id[threadId] = threads_id[threadId + 16];
-			}
-		}  
-		__syncthreads();
-	  
-		if(threadId < 8 && threadId + 8 < 32){
-			if(threads_max[threadId] < threads_max[threadId + 8]){
-				threads_max[threadId] = threads_max[threadId + 8];
-				threads_id[threadId] = threads_id[threadId + 8];
-			}
-		}  
-		__syncthreads();
-	  
-		if(threadId < 4 && threadId + 4 < 32){
-			if(threads_max[threadId] < threads_max[threadId + 4]){
-				threads_max[threadId] = threads_max[threadId + 4];
-				threads_id[threadId] = threads_id[threadId + 4];
-			}
-		}  
-		__syncthreads();
-	  
-		if(threadId < 2 && threadId + 2 < 32){
-			if(threads_max[threadId] < threads_max[threadId + 2]){
-				threads_max[threadId] = threads_max[threadId + 2];
-				threads_id[threadId] = threads_id[threadId + 2];
-			}
-		}  
-		__syncthreads();
-	
-		if(threadId < 1 && threadId + 1 < 32){
-			if(threads_max[threadId] < threads_max[threadId + 1]){
-				threads_max[threadId] = threads_max[threadId + 1];
-				threads_id[threadId] = threads_id[threadId + 1];
-			}		
-		}
-		__syncthreads();
-		
-		if (threadIdx.x == 0)
-		{
-			atomicMax(out, threads_max[0]);
-
-			cooperative_groups::grid_group g = cooperative_groups::this_grid();
-			g.sync();
-
-			if(*out == threads_max[0]){
-				*outIdx = threads_id[0];
-			}
-		}
-	}
-}
-
-
-__device__ void atomicMin(float* const address, const float value)
-{
-	if (*address <= value)
-	{
-		return;
-	}
-
-	int* const addressAsI = (int*)address;
-	int old = *addressAsI;
-	int assumed;
-
-	do 
-	{
-		assumed = old;
-
-		if (__int_as_float(assumed) <= value)
-		{
-			break;
-		}
-
-		old = atomicCAS(addressAsI, assumed, __float_as_int(value));
-	} while (assumed != old);
-}
-
-
-__global__ void findMin(const float* __restrict__ input, const int size, float * out, int * outIdx)
-{
-	int index = threadIdx.x + blockIdx.x * blockDim.x;
-
-	__shared__ float threads_min[32];
-	__shared__ int   threads_id[32];
-	
-	int threadId = threadIdx.x;
-
-	if(index < size){
-		
-		threads_min[threadId] = input[index];
-		threads_id[threadId] = index;
-	  
-		__syncthreads();
-	
-	  
-		if(threadId < 16 && threadId + 16 < 32){
-			if(threads_min[threadId] > threads_min[threadId + 16]){
-				threads_min[threadId] = threads_min[threadId + 16];
-				threads_id[threadId] = threads_id[threadId + 16];
-			}
-		}  
-		__syncthreads();
-	  
-		if(threadId < 8 && threadId + 8 < 32){
-			if(threads_min[threadId] > threads_min[threadId + 8]){
-				threads_min[threadId] = threads_min[threadId + 8];
-				threads_id[threadId] = threads_id[threadId + 8];
-			}
-		}  
-		__syncthreads();
-	  
-		if(threadId < 4 && threadId + 4 < 32){
-			if(threads_min[threadId] > threads_min[threadId + 4]){
-				threads_min[threadId] = threads_min[threadId + 4];
-				threads_id[threadId] = threads_id[threadId + 4];
-			}
-		}  
-		__syncthreads();
-	  
-		if(threadId < 2 && threadId + 2 < 32){
-			if(threads_min[threadId] > threads_min[threadId + 2]){
-				threads_min[threadId] = threads_min[threadId + 2];
-				threads_id[threadId] = threads_id[threadId + 2];
-			}
-		}  
-		__syncthreads();
-	
-		if(threadId < 1 && threadId + 1 < 32){
-			if(threads_min[threadId] > threads_min[threadId + 1]){
-				threads_min[threadId] = threads_min[threadId + 1];
-				threads_id[threadId] = threads_id[threadId + 1];
-			}		
-		}
-		__syncthreads();
-		
-		if (threadIdx.x == 0)
-		{
-			atomicMin(out, threads_min[0]);
-
-			cooperative_groups::grid_group g = cooperative_groups::this_grid();
-			g.sync();
-
-			if(*out == threads_min[0]){
-				*outIdx = threads_id[0];
-			}
-		}
-	}
-}
-
-
-void nelderMead_findBest(int dimension, int numberBlocks,float &best, int &index_best, float * p_obj_function, float * obj, int * idx, thrust::device_vector<float> &d_obj_function){
+void nelderMead_findBest(const int dimension, const int numberBlocks,float &best, int &index_best, const float * p_obj_function, float * obj, int * idx){
 
 	findMin <<< numberBlocks, 32 >>>(p_obj_function, dimension + 1, obj, idx);
 	cudaDeviceSynchronize();
@@ -236,53 +29,44 @@ void nelderMead_findBest(int dimension, int numberBlocks,float &best, int &index
 	index_best = *idx;
 }
 
-void nelderMead_findWorst(int dimension, int numberBlocks, float &worst, int &index_worst, float * p_obj_function, float * obj, int * idx, thrust::device_vector<float> &d_obj_function){
+void nelderMead_findWorst(const int dimension, const int numberBlocks, float &worst, int &index_worst, const float * p_obj_function, float * obj, int * idx){
 
 	findMax <<< numberBlocks, 32 >>>(p_obj_function, dimension + 1, obj, idx);
 	cudaDeviceSynchronize();
 	
 	worst = *obj;
 	index_worst = *idx;
-	
 }
 
 
-__global__ void countIf(int * count, const float * __restrict__ p_obj_function, const int dimension, const float obj_reflection) {
-  
-	__shared__ int sharedInc;
+__global__ void nelderMead_initialize(const int dimension, const float step, const float * __restrict__ p_start, float * p_simplex){
 
-	float obj;
-	int index =  threadIdx.x + blockIdx.x * blockDim.x;
-
-	if (threadIdx.x == 0){
-		sharedInc = 0;
-	}
-	__syncthreads();
-
-	if(index < dimension) {
-		obj = p_obj_function[index];
-		
-		if(obj_reflection < obj){
-			atomicAdd(&sharedInc, 1);
-		}
-	}
-	__syncthreads();
-
-	if(threadIdx.x == 0){
-		atomicAdd(count, sharedInc);
-	}
+    int blockId = blockIdx.x;
+	int threadId = threadIdx.x;
+	int index = threadId + blockId * dimension;
 	
+	float s = p_start[threadId];
+	
+	p_simplex[index] = s;
+	
+	if(threadId == blockId){
+		p_simplex[index] = s + step;
+	}
 }
 
-
-__global__ void nelderMead_centroid(int dimension, int index_worst, float * p_simplex, float * p_centroid){
+__global__ void nelderMead_centroid(const int dimension, const int index_worst, const float * __restrict__ p_simplex, float * p_centroid){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 	int threadsMax = dimension + 1;
 
-	int stride = threadId * dimension;	
-	float value = p_simplex[stride + blockId];
+	__shared__ float worst;
+
+	float value = p_simplex[threadId * dimension + blockId];
+
+	if(threadId == index_worst){
+		worst = value;
+	}
 	
 	__syncthreads();
 
@@ -334,36 +118,39 @@ __global__ void nelderMead_centroid(int dimension, int index_worst, float * p_si
 	__syncthreads();
 	
 	if(threadId == 0){
-		p_centroid[blockId] = (threads_sum[0] - p_simplex[index_worst * dimension + blockId]) / (dimension);
+		p_centroid[blockId] = (threads_sum[0] - worst) / (dimension);
 	}
 }
 
-__global__ void nelderMead_reflection(int dimension, float reflection_coef, float * p_simplex, int index_worst, float * p_centroid, float * p_reflection){
+__global__ void nelderMead_reflection(const int dimension, const float reflection_coef, const float * __restrict__ p_simplex, const int index_worst, const float * __restrict__ p_centroid, float * p_reflection){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 
 	int index = blockId * 32 + threadId; 
 
+	float c = p_centroid[index];
 
 	if(index < dimension){
-		p_reflection[index] = p_centroid[index] + reflection_coef * (p_centroid[index] - p_simplex[ index_worst * dimension + index]);
+		p_reflection[index] = c + reflection_coef * (c - p_simplex[ index_worst * dimension + index]);
 	}
 }
 
-__global__ void nelderMead_expansion(int dimension, float expansion_coef, float * p_centroid, float * p_reflection, float * p_expansion){
+__global__ void nelderMead_expansion(const int dimension, const float expansion_coef, const float * __restrict__ p_centroid, const float * __restrict__ p_reflection, float * p_expansion){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 
 	int index = blockId * 32 + threadId; 
 
+	float c = p_centroid[index];
+
 	if(index < dimension){
-		p_expansion[index] = p_centroid[index] + expansion_coef * (p_reflection[index] - p_centroid[index]);
+		p_expansion[index] = c + expansion_coef * (p_reflection[index] - c);
 	}
 }
 
-__global__ void nelderMead_replacement(int dimension, float * p_simplex, float * p_new_vertex, int index_worst, float * p_obj_function, float obj){
+__global__ void nelderMead_replacement(const int dimension, float * p_simplex, const float * __restrict__ p_new_vertex, const int index_worst, float * p_obj_function, const float obj){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
@@ -381,81 +168,38 @@ __global__ void nelderMead_replacement(int dimension, float * p_simplex, float *
 	}
 }
 
-__global__ void nelderMead_contraction(int dimension, float contraction_coef, float * p_centroid, int index, float * p_simplex, float * p_vertex){
+__global__ void nelderMead_contraction(const int dimension, const float contraction_coef, const float * __restrict__ p_centroid, int index, const float * __restrict__ p_simplex, float * p_vertex){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 
 	int i = blockId * 32 + threadId; 
 
+	float c = p_centroid[i];
+
 	if(i < dimension){
-		p_vertex[i] = p_centroid[i] + contraction_coef * (p_simplex[index * dimension + i] - p_centroid[i]);
+		p_vertex[i] = c + contraction_coef * (p_simplex[index * dimension + i] - c);
 	}
 }
 
-__global__ void nelderMead_shrink(int dimension, float shrink_coef, float * p_simplex, int index_best){
+__global__ void nelderMead_shrink(const int dimension, const float shrink_coef, float * p_simplex, const int index_best){
 
     int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 	
-	int stride_best = index_best * dimension;
+	int stride = threadId * dimension;
+	
+	__shared__ float best;
 
-    int stride = blockId * dimension;
+	if(threadId == 0){
+		best = p_simplex[index_best * dimension + blockId];
+	}
+	__syncthreads();
 
 	if(threadId != index_best){
-		p_simplex[stride +  threadId] = shrink_coef * p_simplex[stride_best + threadId] + (1.0f - shrink_coef) * p_simplex[stride + threadId];
-	}
-
-}
-
-
-struct count_better_than_reflection{
-    float reflection;
-
-    count_better_than_reflection(float _reflection){
-        reflection = _reflection;
-	}
-    
-	__device__
-	bool operator()(const float &x)
-	{
-		return reflection < x;
-	}
-};
-
-
-void nelderMead_calculate_from_host(int blocks, NelderMead &p, void * h_problem_p, float * p_simplex, float * p_obj_function){
-
-	p.evaluations_used += blocks;
-
-	if(p.problem_type == AB_OFF_LATTICE){
-		
-		ABOffLattice * h_problem_parameters = (ABOffLattice*)h_problem_p;
-		int threads = (*h_problem_parameters).protein_length - 2;
-
-		calculateABOffLattice<<< blocks, threads >>>(p.dimension, h_problem_parameters->protein_length, p_simplex, p_obj_function);
-		cudaDeviceSynchronize();
-		
-	}else if(p.problem_type == BENCHMARK){
-
-
-		int threads = p.dimension;
-		
-		switch(p.benchmark_problem){
-			case SQUARE:
-				calculateSquare<<< blocks, threads >>>(p.dimension, p_simplex, p_obj_function);
-				cudaDeviceSynchronize();
-				break;
-			case SUM:
-				calculateAbsoluteSum<<< blocks, threads >>>(p.dimension, p_simplex, p_obj_function);
-				cudaDeviceSynchronize();
-				break;
-		}
+		p_simplex[stride +  blockId] = shrink_coef * best + (1.0f - shrink_coef) * p_simplex[stride + blockId];
 	}
 }
-
-
-
 
 NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters = NULL)
 {
@@ -473,13 +217,10 @@ NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters =
 	thrust::device_vector<float> d_start(dimension);
 	
 	thrust::device_vector<float> d_simplex(dimension * (dimension + 1));
-	
 	thrust::device_vector<float> d_centroid(dimension);
 	thrust::device_vector<float> d_reflection(dimension);
 	thrust::device_vector<float> d_vertex(dimension);
-	
 	thrust::device_vector<float> d_obj_function(dimension + 1);
-	thrust::host_vector<float>	 h_obj_function(dimension + 1);
 	
 	float best, worst, obj_reflection, obj_vertex;
 	int index_best, index_worst;
@@ -489,22 +230,21 @@ NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters =
 	float * p_centroid 		= thrust::raw_pointer_cast(&d_centroid[0]);
 	float * p_reflection 	= thrust::raw_pointer_cast(&d_reflection[0]);
 	float * p_vertex 		= thrust::raw_pointer_cast(&d_vertex[0]);
-	
 	float * p_obj_function 	= thrust::raw_pointer_cast(&d_obj_function[0]);
 
-	thrust::host_vector<float> h_vertex(dimension);
-
 	float * obj;
-	cudaMallocManaged(&obj, sizeof(float));
-	cudaMemset(obj, 0.0f, sizeof(float));
-	
 	int * idx;
-	cudaMallocManaged(&idx, sizeof(int));
-	cudaMemset(idx, 0, sizeof(int));
-
 	int * count;
+	
+	cudaMallocManaged(&obj, sizeof(float));
+	cudaMallocManaged(&idx, sizeof(int));
 	cudaMallocManaged(&count, sizeof(int));
+
+	cudaMemset(obj, 0.0f, sizeof(float));	
+	cudaMemset(idx, 0, sizeof(int));
 	cudaMemset(count, 0, sizeof(int));
+
+	int numberBlocks = ceil((float)dimension / 32.0f);
 
 
 	thrust::copy(parameters.p_start, parameters.p_start + dimension, d_start.begin());	
@@ -512,26 +252,23 @@ NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters =
 	nelderMead_initialize<<< dimension + 1, dimension >>>(dimension, parameters.step, p_start, p_simplex);
 	cudaDeviceSynchronize();
 
-	nelderMead_calculate_from_host(dimension + 1, parameters, problem_parameters, p_simplex, p_obj_function);
+	nelderMead_calculateSimplex(dimension + 1, dimension, parameters.evaluations_used, p_obj_function, p_simplex, problem_parameters);
 	
-	int numberBlocks = ceil((float)dimension / 32.0f);
-
 	*idx = index_best = index_worst = 0;
 	*obj = best = worst = d_obj_function[0];
 
-	nelderMead_findBest(dimension, numberBlocks, best, index_best, p_obj_function, obj, idx, d_obj_function);
+	nelderMead_findBest(dimension, numberBlocks, best, index_best, p_obj_function, obj, idx);
 	
 	for (int k = 0; k < parameters.iterations_number; k++) {
 
 		*obj = best;
-		nelderMead_findWorst(dimension, numberBlocks, worst, index_worst, p_obj_function, obj, idx, d_obj_function);
+		nelderMead_findWorst(dimension, numberBlocks, worst, index_worst, p_obj_function, obj, idx);
 
 		nelderMead_centroid<<< dimension, dimension + 1>>>(dimension, index_worst, p_simplex, p_centroid);
 		cudaDeviceSynchronize();
 		
 		nelderMead_reflection<<< numberBlocks, 32 >>>(dimension, parameters.reflection_coef, p_simplex, index_worst, p_centroid, p_reflection);
 		cudaDeviceSynchronize();
-		
 		
 		nelderMead_calculateVertex(dimension, parameters.evaluations_used, obj_reflection, p_reflection, problem_parameters, obj);
 
@@ -581,35 +318,31 @@ NelderMeadResult nelderMead (NelderMead &parameters, void * problem_parameters =
 					nelderMead_replacement<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, index_worst, p_obj_function, obj_reflection);
 					cudaDeviceSynchronize();
 				}else{
-					nelderMead_shrink<<< dimension + 1, dimension >>>(dimension, parameters.shrink_coef, p_simplex, index_best);
+					nelderMead_shrink<<< dimension, dimension + 1 >>>(dimension, parameters.shrink_coef, p_simplex, index_best);
 					cudaDeviceSynchronize();
 					
-					nelderMead_calculate_from_host(dimension + 1, parameters, problem_parameters, p_simplex, p_obj_function);
+					nelderMead_calculateSimplex(dimension + 1, dimension, parameters.evaluations_used, p_obj_function, p_simplex, problem_parameters);
 
 					*obj = best;
 					*idx = index_best;
-					nelderMead_findBest(dimension, numberBlocks, best, index_best, p_obj_function, obj, idx, d_obj_function);
+					nelderMead_findBest(dimension, numberBlocks, best, index_best, p_obj_function, obj, idx);
 				}
 			}
 		}
 		if (d_obj_function[index_worst] < best){ 
 			best = d_obj_function[index_worst]; 
 			index_best = index_worst; 
-
 		}
 	}
 	
 	NelderMeadResult result;
-
+	
 	result.best = best;
 	result.best_vertex.resize(dimension);
 	result.evaluations_used = parameters.evaluations_used;
-
-	for(int i = 0; i < dimension; i++){
-		result.best_vertex[i] = d_simplex[index_best * dimension + i];
-	}
+	
+	int stride = index_best * dimension;
+	thrust::copy(d_simplex.begin() + stride, d_simplex.begin() + stride + dimension, result.best_vertex.begin());
 
 	return result;
 }
-
-#endif

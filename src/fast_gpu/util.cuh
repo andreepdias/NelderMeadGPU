@@ -1,7 +1,5 @@
-#ifndef __UTIL_H
-#define __UTIL_H
+#pragma once
 
-/* Thrust imports */
 //#include <thrust/transform_reduce.h>
 #include <thrust/functional.h>
 #include <thrust/device_vector.h>
@@ -222,5 +220,3 @@ bool readInput(NelderMead &parameters, std::ifstream &input_file, ABOffLattice *
     
     return true;
 }
-
-#endif

@@ -1,4 +1,3 @@
-
 #include "util.cuh"
 #include "nelmin.cuh"
 
