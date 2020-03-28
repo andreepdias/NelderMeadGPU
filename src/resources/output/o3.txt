@@ -1,0 +1,70 @@
+
+-------------------- PARAMETERS --------------------
+Executions: 1
+Iterations: 100000
+Dimension:  191
+----------------------------------------------------
+Protein Name:   2EWH
+Protein Length: 98
+Protein Chain:  AABABAAAAAAABBBAAAAAABAABAABBAABABAAABBBAAAABABAAABABBAAABAAABAAABAABBAABAAAAABAAABABBBABBAAABAABA
+----------------------------------------------------
+Best: -198.9344788
+
+Evaluations: 107772
+Elapsed Time: 15.1940625
+
+-------------------- PARAMETERS --------------------
+Executions: 1
+Iterations: 100000
+Dimension:  191
+----------------------------------------------------
+Protein Name:   2EWH
+Protein Length: 98
+Protein Chain:  AABABAAAAAAABBBAAAAAABAABAABBAABABAAABBBAAAABABAAABABBAAABAAABAAABAABBAABAAAAABAAABABBBABBAAABAABA
+----------------------------------------------------
+Best: -199.2096100
+
+Evaluations: 107976
+Elapsed Time: 15.1418486
+
+-------------------- PARAMETERS --------------------
+Executions: 1
+Iterations: 100000
+Dimension:  191
+----------------------------------------------------
+Protein Name:   2EWH
+Protein Length: 98
+Protein Chain:  AABABAAAAAAABBBAAAAAABAABAABBAABABAAABBBAAAABABAAABABBAAABAAABAAABAABBAABAAAAABAAABABBBABBAAABAABA
+----------------------------------------------------
+Best: -198.6393890
+
+Evaluations: 107682
+Elapsed Time: 15.8032959
+
+-------------------- PARAMETERS --------------------
+Executions: 1
+Iterations: 100000
+Dimension:  191
+----------------------------------------------------
+Protein Name:   2EWH
+Protein Length: 98
+Protein Chain:  AABABAAAAAAABBBAAAAAABAABAABBAABABAAABBBAAAABABAAABABBAAABAAABAAABAABBAABAAAAABAAABABBBABBAAABAABA
+----------------------------------------------------
+Best: -199.1316223
+
+Evaluations: 107862
+Elapsed Time: 15.2906484
+
+-------------------- PARAMETERS --------------------
+Executions: 1
+Iterations: 100000
+Dimension:  191
+----------------------------------------------------
+Protein Name:   2EWH
+Protein Length: 98
+Protein Chain:  AABABAAAAAAABBBAAAAAABAABAABBAABABAAABBBAAAABABAAABABBAAABAAABAAABAABBAABAAAAABAAABABBBABBAAABAABA
+----------------------------------------------------
+Best: -198.6350708
+
+Evaluations: 107651
+Elapsed Time: 15.2223604

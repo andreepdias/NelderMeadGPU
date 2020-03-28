@@ -1,5 +1,10 @@
-#include "util.hpp"
-#include "nelmin.hpp"
+#include "../shared/nelderMead.hpp"
+#include "../shared/abOffLattice.hpp"
+#include "../shared/util.hpp"
+#include "../shared/reading.hpp"
+#include "../shared/printing.hpp"
+
+#include "nelderMead.hpp"
 
 int main(){
 
@@ -15,11 +20,7 @@ int main(){
         return 1;
     }
 
-    printf("-------------------- PARAMETERS --------------------\n");
-    printf("Executions: %d\n", parameters.executions_number);
-    printf("Iterations: %d\n", parameters.iterations_number);
-    printf("Dimension:  %d\n", parameters.dimension);
-    printf("----------------------------------------------------\n");
+    printParameters(parameters, parametersAB);
 
     double start, stop, elapsed_time;
 

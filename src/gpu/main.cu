@@ -1,7 +1,10 @@
+#include "../shared/nelderMead.hpp"
+#include "../shared/util.hpp"
+#include "../shared/reading.hpp"
+#include "../shared/printing.hpp"
 
-#include "util.cuh"
+#include "../shared/abOffLattice.hpp"
 #include "nelderMead.cuh"
-
 
 int main() {
 
@@ -17,11 +20,7 @@ int main() {
         return 1;
     }
 
-    printf("-------------------- PARAMETERS --------------------\n");
-    printf("Executions: %d\n", parameters.executions_number);
-    printf("Iterations: %d\n", parameters.iterations_number);
-    printf("Dimension:  %d\n", parameters.dimension);
-    printf("----------------------------------------------------\n");
+    printParameters(parameters, parametersAB);
 
     cudaEvent_t start, stop;
 
@@ -83,14 +82,13 @@ int main() {
 
         cudaEventRecord(start);
 
-        NelderMeadResult result = nelderMead(parameters, (void*) parametersAB, (void*) d_parametersAB );
+        NelderMeadResult result = nelderMead(parameters, (void*) parametersAB, (void*) d_parametersAB);
 
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
         cudaEventElapsedTime(&elapsed_time, start, stop);
         
         printf("Best: %.7f\n", result.best);
-
 
         if(parameters.show_best_vertex){
             printf("Best Vertex:\n");
@@ -105,4 +103,3 @@ int main() {
     }
 
 }
-
