@@ -1,0 +1,216 @@
+Running NelderMead algorithm on CPU...
+
+Executions:  10
+Evaluations:  500000
+Proteins Evalued: 13
+
+-----------------------------------------------
+Protein Name: 1CB3
+Protein Chain: BABBBAABBAAAB
+Protein Length: 13
+Dimension: 21
+
+Running execution 1...
+Running execution 2...
+Running execution 3...
+Running execution 4...
+Running execution 5...
+Running execution 6...
+Running execution 7...
+Running execution 8...
+Running execution 9...
+Running execution 10...
+ 
+    -> Results:
+
+   Run #1
+Elapsed Time: 0.9723
+Obj Function: -8.3996201
+
+   Run #2
+Elapsed Time: 0.9610
+Obj Function: -8.3996201
+
+   Run #3
+Elapsed Time: 0.9421
+Obj Function: -8.3996201
+
+   Run #4
+Elapsed Time: 0.9433
+Obj Function: -8.3996201
+
+   Run #5
+Elapsed Time: 0.9437
+Obj Function: -8.3996201
+
+   Run #6
+Elapsed Time: 0.9427
+Obj Function: -8.3996201
+
+   Run #7
+Elapsed Time: 0.9432
+Obj Function: -8.3996201
+
+   Run #8
+Elapsed Time: 0.9422
+Obj Function: -8.3996201
+
+   Run #9
+Elapsed Time: 0.9427
+Obj Function: -8.3996201
+
+   Run #10
+Elapsed Time: 0.9428
+Obj Function: -8.3996201
+
+   -All Runs:-
+Mean Elapsed Time: 0.9476
+Standard Deviation Elapsed Time: 0.0099
+
+Mean Objective Function: -8.3996
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -8.3996201
+Worst of all runs: -8.3996201
+-----------------------------------------------
+Protein Name: 1BXL
+Protein Chain: ABAABBAAAAABBABB
+Protein Length: 16
+Dimension: 27
+
+Running execution 1...
+Running execution 2...
+Running execution 3...
+Running execution 4...
+Running execution 5...
+Running execution 6...
+Running execution 7...
+Running execution 8...
+Running execution 9...
+Running execution 10...
+ 
+    -> Results:
+
+   Run #1
+Elapsed Time: 1.5599
+Obj Function: -16.5264874
+
+   Run #2
+Elapsed Time: 1.5132
+Obj Function: -16.5264874
+
+   Run #3
+Elapsed Time: 1.5125
+Obj Function: -16.5264874
+
+   Run #4
+Elapsed Time: 1.5121
+Obj Function: -16.5264874
+
+   Run #5
+Elapsed Time: 1.5110
+Obj Function: -16.5264874
+
+   Run #6
+Elapsed Time: 1.5105
+Obj Function: -16.5264874
+
+   Run #7
+Elapsed Time: 1.5093
+Obj Function: -16.5264874
+
+   Run #8
+Elapsed Time: 1.5094
+Obj Function: -16.5264874
+
+   Run #9
+Elapsed Time: 1.5087
+Obj Function: -16.5264874
+
+   Run #10
+Elapsed Time: 1.5113
+Obj Function: -16.5264874
+
+   -All Runs:-
+Mean Elapsed Time: 1.5158
+Standard Deviation Elapsed Time: 0.0148
+
+Mean Objective Function: -16.5265
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -16.5264874
+Worst of all runs: -16.5264874
+-----------------------------------------------
+Protein Name: 1EDP
+Protein Chain: ABABBAABBBAABBABA
+Protein Length: 17
+Dimension: 29
+
+Running execution 1...
+Running execution 2...
+Running execution 3...
+Running execution 4...
+Running execution 5...
+Running execution 6...
+Running execution 7...
+Running execution 8...
+Running execution 9...
+Running execution 10...
+ 
+    -> Results:
+
+   Run #1
+Elapsed Time: 1.6601
+Obj Function: -14.5645571
+
+   Run #2
+Elapsed Time: 1.6189
+Obj Function: -14.5645571
+
+   Run #3
+Elapsed Time: 1.6179
+Obj Function: -14.5645571
+
+   Run #4
+Elapsed Time: 1.6181
+Obj Function: -14.5645571
+
+   Run #5
+Elapsed Time: 1.6167
+Obj Function: -14.5645571
+
+   Run #6
+Elapsed Time: 1.6168
+Obj Function: -14.5645571
+
+   Run #7
+Elapsed Time: 1.6167
+Obj Function: -14.5645571
+
+   Run #8
+Elapsed Time: 1.6163
+Obj Function: -14.5645571
+
+   Run #9
+Elapsed Time: 1.6158
+Obj Function: -14.5645571
+
+   Run #10
+Elapsed Time: 1.6199
+Obj Function: -14.5645571
+
+   -All Runs:-
+Mean Elapsed Time: 1.6217
+Standard Deviation Elapsed Time: 0.0128
+
+Mean Objective Function: -14.5646
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -14.5645571
+Worst of all runs: -14.5645571
+-----------------------------------------------
+Protein Name: 2H3S
+Protein Chain: AABBAABBBBBABBBABAABBBBBB
+Protein Length: 25
+Dimension: 45
+

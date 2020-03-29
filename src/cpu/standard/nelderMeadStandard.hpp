@@ -54,19 +54,7 @@ void nelderMead_initialize(NelderMead &p){
 
 void nelderMead_calculate(NelderMead & p, void * problem_p, int number_evalueted_vertexes, float * p_simplex, std::pair<float, int> * p_objective_function){
 
-	if(p.problem_type == AB_OFF_LATTICE){
-		calculateABOffLattice(p, problem_p, number_evalueted_vertexes,p_simplex, p_objective_function);
-	}else if(p.problem_type == BENCHMARK){
-
-		switch(p.benchmark_problem){
-			case SQUARE:
-				calculateSquare(p, number_evalueted_vertexes, p_simplex, p_objective_function);
-				break;
-			case SUM:
-				calculateAbsoluteSum(p, number_evalueted_vertexes, p_simplex, p_objective_function);
-				break;
-		}
-	}
+	calculateABOffLattice(p, problem_p, number_evalueted_vertexes,p_simplex, p_objective_function);
 }
 
 void nelderMead_centroid(NelderMead &p){

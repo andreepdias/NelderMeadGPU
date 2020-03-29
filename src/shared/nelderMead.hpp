@@ -2,18 +2,6 @@
 
 #include "util.hpp"
 
-enum ProblemEnum {
-    NO_PROBLEM,
-    BENCHMARK,
-    AB_OFF_LATTICE
-};
-
-enum BenchmarkProblemEnum {
-    NONE,
-    SQUARE,
-    SUM
-};
-
 enum OptimizationTypeEnum {
     SINGLE,
     MULTI,
@@ -28,6 +16,8 @@ struct NelderMead{
 
     int executions_number;
     int iterations_number;
+    int evaluations_number;
+
     int dimension;
 
 	float step;
@@ -53,9 +43,6 @@ struct NelderMead{
 	std::pair<float, int> * p_obj_expansion;
 	std::pair<float, int> * p_obj_contraction;
 
-	ProblemEnum problem_type;
-	BenchmarkProblemEnum benchmark_problem;
-    
     std::vector< std::vector<float> > starting_points;
 
     bool show_best_vertex;
@@ -65,7 +52,11 @@ struct NelderMead{
 struct NelderMeadResult{
 
     float best;    
+    float elapsed_time;
+    
     std::vector<float> best_vertex;
+
     int evaluations_used;
+    int latest_improvement;
 };
 

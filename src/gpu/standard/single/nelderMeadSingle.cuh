@@ -5,50 +5,68 @@
 #include "../../shared/print.cuh"
 #include "../../shared/objectiveFunctions.cuh"
 
-__global__ void nelderMead_reflectionSingle(int dimension, float reflection_coef, float * p_simplex, uint * p_indexes, float * p_centroid, float * p_reflection){
+__global__ void nelderMead_reflectionSingle(const int dimension,const float reflection_coef, const float * __restrict__ p_simplex, const uint * __restrict__ p_indexes, const float * __restrict__ p_centroid, float * p_reflection){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 
 	int index = blockId * 32 + threadId; 
 
+	float c = p_centroid[index];
+
+	__shared__ int index_worst;
+
+	if(threadId == 0){
+		index_worst = p_indexes[dimension];
+	}
+	__syncthreads();
 
 	if(index < dimension){
-		p_reflection[index] = p_centroid[index] + reflection_coef * (p_centroid[index] - p_simplex[ p_indexes[dimension] * dimension + index]);
+		p_reflection[index] = c + reflection_coef * (c - p_simplex[ index_worst * dimension + index]);
 	}
 }
 
-__global__ void nelderMead_expansionSingle(int dimension, float expansion_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion){
+__global__ void nelderMead_expansionSingle(const int dimension, const float expansion_coef, const float * __restrict__ p_simplex, const float * __restrict__ p_centroid, const float * __restrict__ p_reflection, float * p_expansion){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 
 	int index = blockId * 32 + threadId; 
 
+	float r = p_reflection[index];
+
 	if(index < dimension){
-		p_expansion[index] = p_reflection[index] + expansion_coef * (p_reflection[index] - p_centroid[index]);
+		p_expansion[index] = r + expansion_coef * (r - p_centroid[index]);
 	}
 }
 
-__global__ void nelderMead_contractionSingle(int dimension, float contraction_coef, float * p_centroid, float * p_vertex, int stride, float * p_contraction){
+__global__ void nelderMead_contractionSingle(const int dimension, const float contraction_coef, const float * __restrict__ p_centroid, const  float * __restrict__ p_vertex, const int stride, float * p_contraction){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 
 	int index = blockId * 32 + threadId; 
 
+	float c = p_centroid[index];
+
 	if(index < dimension){
-		p_contraction[index] = p_centroid[index] + contraction_coef * (p_vertex[stride + index] - p_centroid[index]);
+		p_contraction[index] = c + contraction_coef * (p_vertex[stride + index] - c);
 	}
 }
 
-__global__ void nelderMead_replacementSingle(int dimension, float * p_simplex, float * p_new_vertex, uint * p_indexes, float * p_objective_function, float * p_obj){
+__global__ void nelderMead_replacementSingle(const int dimension, float * p_simplex, const float * __restrict__ p_new_vertex, const uint * __restrict__ p_indexes, float * p_objective_function, const float * __restrict__ p_obj){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 
 	int index = blockId * 32 + threadId; 
-	int stride = p_indexes[dimension] * dimension;
+
+	__shared__ int stride;
+
+	if(threadId == 0){
+		stride = p_indexes[dimension] * dimension;
+	}
+	__syncthreads();
 
 
 	if(index < dimension){
@@ -60,7 +78,7 @@ __global__ void nelderMead_replacementSingle(int dimension, float * p_simplex, f
 	}
 }
 
-__global__ void nelderMead_updateSingle(int k, int dimension, int numberBlocks, int * p_evaluations, float expansion_coef, float contraction_coef, float shrink_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, float * p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction, void * d_problem_parameters, ProblemEnum problem_type, BenchmarkProblemEnum benchmark_problem, int * p_count){
+__global__ void nelderMead_updateSingle(const int dimension, const int numberBlocks, int * p_evaluations, const float expansion_coef, const float contraction_coef, const float shrink_coef, float * p_simplex, const float * __restrict__ p_centroid, const  float * __restrict__ p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, const float * __restrict__ p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction,  const void * __restrict__ d_problem_parameters, ProblemEnum problem_type, BenchmarkProblemEnum benchmark_problem, int * p_count){
 
 	float best = p_objective_function[0];
 	float worst = p_objective_function[dimension];
@@ -74,7 +92,7 @@ __global__ void nelderMead_updateSingle(int k, int dimension, int numberBlocks, 
 		cudaDeviceSynchronize();
 		
 		// nelderMead_calculateSingleFromDevice(d_problem_parameters, p_expansion, p_obj_expansion);
-		nelderMead_calculateFromDevice(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_expansion, p_obj_expansion);
+		nelderMead_calculateFromDevice(1, dimension, d_problem_parameters, p_expansion, p_obj_expansion);
 
 		/*e*/ p_evaluations[0] += 1;
 		
@@ -100,9 +118,8 @@ __global__ void nelderMead_updateSingle(int k, int dimension, int numberBlocks, 
 			cudaDeviceSynchronize();
 		}
 		// nelderMead_calculateSingleFromDevice(d_problem_parameters, p_contraction, p_obj_contraction);
-		nelderMead_calculateFromDevice(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_contraction, p_obj_contraction);
+		nelderMead_calculateFromDevice(1, dimension, d_problem_parameters, p_contraction, p_obj_contraction);
 		/*e*/ p_evaluations[0] += 1;
-
 
 		c = p_obj_contraction[0];
 
@@ -122,7 +139,7 @@ __global__ void nelderMead_updateSingle(int k, int dimension, int numberBlocks, 
 			cudaDeviceSynchronize();
 
 			sequence(p_indexes, dimension + 1);
-			nelderMead_calculateFromDevice(dimension + 1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_simplex, p_objective_function);
+			nelderMead_calculateFromDevice(dimension + 1, dimension, d_problem_parameters, p_simplex, p_objective_function);
 			/*e*/ p_evaluations[0] += dimension + 1;
 		}
 	}
@@ -182,10 +199,10 @@ NelderMeadResult nelderMeadSingle(NelderMead &parameters, void * h_problem_param
 
 	/*c*/ thrust::fill(d_count.begin(), d_count.end(), 0);
 
-	nelderMead_initialize<<< dimension + 1, dimension >>>(dimension, parameters.step, p_start, p_simplex);
+	nelderMead_initialize<<< dimension, dimension + 1 >>>(dimension, parameters.step, p_start, p_simplex);
 	cudaDeviceSynchronize();
 
-	nelderMead_calculateFromHost(dimension + 1, parameters, h_problem_parameters, p_simplex, p_objective_function);
+	nelderMead_calculateFromHost(dimension + 1, dimension, h_problem_parameters, p_simplex, p_objective_function);
 	/*e*/ evaluations_used += dimension + 1;
 
 	thrust::sort_by_key(d_obj_function.begin(), d_obj_function.end(), d_indexes.begin());
@@ -202,10 +219,10 @@ NelderMeadResult nelderMeadSingle(NelderMead &parameters, void * h_problem_param
 		
 		// d_obj_reflection[0] = 0;
 		// nelderMead_calculateSingleFromHost(h_problem_parameters, p_reflection, p_obj_reflection);
-		nelderMead_calculateFromHost(1, parameters, h_problem_parameters, p_reflection, p_obj_reflection);
+		nelderMead_calculateFromHost(1, dimension, h_problem_parameters, p_reflection, p_obj_reflection);
 		/*e*/ evaluations_used += 1;
 		
-		nelderMead_updateSingle<<< 1, 1 >>>(i, dimension, numberBlocks, p_evaluations, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, d_problem_parameters, parameters.problem_type, parameters.benchmark_problem, p_count);
+		nelderMead_updateSingle<<< 1, 1 >>>(dimension, numberBlocks, p_evaluations, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, d_problem_parameters, parameters.problem_type, parameters.benchmark_problem, p_count);
 		cudaDeviceSynchronize();
 		
 		thrust::sort_by_key(d_obj_function.begin(), d_obj_function.end(), d_indexes.begin());

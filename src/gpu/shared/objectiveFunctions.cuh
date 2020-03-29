@@ -243,65 +243,21 @@ __global__ void calculateABOffLattice(const int dimension, const int protein_len
 	}
 }
 
-void calculateSingle3DABOffLattice(const int dimension, const float * p_vertex, const void * problem_parameters, float * obj){
-	
-	ABOffLattice * parametersAB = (ABOffLattice*)problem_parameters;
-	int protein_length = (*parametersAB).protein_length;
-
-	// *obj = 0;
-	// calculateSingleAB3D<<<protein_length - 2, protein_length - 2 >>>(obj, protein_length, p_vertex);
-	calculateABOffLattice<<< 1, protein_length - 2 >>>(dimension, protein_length, p_vertex, obj);
-	cudaDeviceSynchronize();
-}
-
-void calculateMulti3DABOffLattice(const int blocks, const int dimension, const float * p_simplex, float * p_obj_function, const void * problem_parameters){
-	
-	ABOffLattice * parametersAB = (ABOffLattice*)problem_parameters;
-	int protein_length = (*parametersAB).protein_length;
-
-	calculateABOffLattice<<< blocks, protein_length - 2 >>>(dimension, protein_length, p_simplex, p_obj_function);
-	cudaDeviceSynchronize();
-}
-
-
-
-__device__ void nelderMead_calculateFromDevice(int blocks, int dimension, ProblemEnum problem_type, BenchmarkProblemEnum benchmark_problem, void * d_problem_p, float * p_simplex, float * p_objective_function,  bool is_specific_block = false, int specific_block = 0){
+__device__ void nelderMead_calculateFromDevice(const int blocks, const int dimension, const void * __restrict__ d_problem_p,  const float * __restrict__ p_simplex, float * p_objective_function, const bool is_specific_block = false, const int specific_block = 0){
 
 	ABOffLattice * d_problem_parameters = (ABOffLattice*)d_problem_p;
-	int threads = (*d_problem_parameters).protein_length - 2;
+	int protein_length = (*d_problem_parameters).protein_length;
 
-	calculateABOffLattice<<< blocks, threads >>>(dimension, d_problem_parameters->protein_length, p_simplex, p_objective_function, is_specific_block, specific_block);
+	calculateABOffLattice<<< blocks, protein_length - 2 >>>(dimension, protein_length, p_simplex, p_objective_function, is_specific_block, specific_block);
 	cudaDeviceSynchronize();
 }
 
-void nelderMead_calculateFromHost(int blocks, NelderMead &p, void * h_problem_p, float * p_simplex, float * p_objective_function,  bool is_specific_block = false, int specific_block = 0){
-
-	ABOffLattice * h_problem_parameters = (ABOffLattice*)h_problem_p;
-	int threads = (*h_problem_parameters).protein_length - 2;
-
-	calculateABOffLattice<<< blocks, threads >>>(p.dimension, h_problem_parameters->protein_length, p_simplex, p_objective_function);
-	cudaDeviceSynchronize();
-
-}
-
-__device__ void nelderMead_calculateSingleFromDevice(void * d_problem_p, float * p_simplex, float * p_objective_function,  bool is_specific_block = false, int specific_block = 0){
-
-	ABOffLattice * d_problem_parameters = (ABOffLattice*)d_problem_p;
-	int protein_length = (*d_problem_parameters).protein_length ;
-
-	p_objective_function[0] = 0;
-	calculateSingleAB3D<<< protein_length - 2, protein_length - 2 >>>(&p_objective_function[0], protein_length, p_simplex);
-	cudaDeviceSynchronize();
-}
-
-void nelderMead_calculateSingleFromHost(void * h_problem_p, float * p_simplex, float * p_objective_function,  bool is_specific_block = false, int specific_block = 0){
+void nelderMead_calculateFromHost(const int blocks, const int dimension, const void * h_problem_p, const float * p_simplex, float * p_objective_function, const bool is_specific_block = false, const int specific_block = 0){
 
 	ABOffLattice * h_problem_parameters = (ABOffLattice*)h_problem_p;
 	int protein_length = (*h_problem_parameters).protein_length;
 
-	calculateSingleAB3D<<< protein_length - 2, protein_length - 2 >>>(&p_objective_function[0], protein_length, p_simplex);
+	calculateABOffLattice<<< blocks, protein_length - 2 >>>(dimension, protein_length, p_simplex, p_objective_function);
 	cudaDeviceSynchronize();
 
 }
-
-

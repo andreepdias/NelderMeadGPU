@@ -4,44 +4,63 @@
 #include "../nelderMeadShared.cuh"
 
 
-__global__ void nelderMead_reflectionMulti(int p, int dimension, float reflection_coef, float * p_simplex, uint * p_indexes, float * p_centroid, float * p_reflection){
+__global__ void nelderMead_reflectionMulti(const int p, const int dimension, const float reflection_coef, const float * __restrict__ p_simplex, const uint * __restrict__ p_indexes, const float * __restrict__ p_centroid, float * p_reflection){
 
-	int index = threadIdx.x;
+	int threadId = threadIdx.x;
 	int blockId = blockIdx.x;
 	int stride = blockId * dimension;
 
-	if(index < dimension){
+	float c = p_centroid[threadId];
+
+	__shared__ int index_worst;
+
+	if(threadId == 0){
+		index_worst = p_indexes[dimension - blockId];
+	}
+	__syncthreads();
+
+	if(threadId < dimension){
 		//dimension - p + 1 + blockId
-		p_reflection[stride + index] = p_centroid[index] + reflection_coef * (p_centroid[index] - p_simplex[ p_indexes[dimension - blockId] * dimension + index]);
+		p_reflection[stride + threadId] = c + reflection_coef * (c - p_simplex[ index_worst * dimension + threadId]);
 	}
 }
 
-__global__ void nelderMead_expansionMulti(int processor, int dimension, float expansion_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion){
+__global__ void nelderMead_expansionMulti(const int p, const int dimension, const float expansion_coef, const float * __restrict__ p_simplex, const float * __restrict__ p_centroid, const float * __restrict__ p_reflection, float * p_expansion){
 
 	int index = threadIdx.x;
-	int stride = processor * dimension;
+	int stride = p * dimension;
+
+	float r = p_reflection[stride + index];
 
 	if(index < dimension){
-		p_expansion[stride + index] = p_reflection[stride + index] + expansion_coef * (p_reflection[stride + index] - p_centroid[index]);
+		p_expansion[stride + index] = r + expansion_coef * (r - p_centroid[index]);
 	}
 }
 
-__global__ void nelderMead_contractionMulti(int processor, int dimension, float contraction_coef, float * p_centroid, float * p_vertex, int stride, float * p_contraction){
+__global__ void nelderMead_contractionMulti(const int p, const int dimension, const float contraction_coef, const float * __restrict__ p_centroid, const float * __restrict__ p_vertex, const int stride, float * p_contraction){
 
 	int index = threadIdx.x;
-	int stride_contraction = processor * dimension;
+	int stride_contraction = p * dimension;
+
+	float c = p_centroid[index];
 
 	if(index < dimension){
-		p_contraction[stride_contraction + index] = p_centroid[index] + contraction_coef * (p_vertex[stride + index] - p_centroid[index]);
+		p_contraction[stride_contraction + index] = c + contraction_coef * (p_vertex[stride + index] - c);
 	}
 }
 
-__global__ void nelderMead_replacementMulti(int processor, int dimension, float * p_simplex, float * p_new_vertex, uint * p_indexes, float * p_objective_function, float * p_obj){
+__global__ void nelderMead_replacementMulti(const int p, const int dimension, float * p_simplex, const float * __restrict__ p_new_vertex, const uint * __restrict__ p_indexes, float * p_objective_function, const float * __restrict__ p_obj){
 
 	int index = threadIdx.x;
 
-	int stride = processor * dimension;
-	int stride_worst = p_indexes[dimension - processor] * dimension;
+	int stride = p * dimension;
+
+	__shared__ int stride_worst;
+
+	if(index == 0){
+		stride_worst = p_indexes[dimension - p] * dimension;
+	}
+	__syncthreads();
 
 
 	if(index < dimension){
@@ -49,11 +68,11 @@ __global__ void nelderMead_replacementMulti(int processor, int dimension, float 
 	}
 
 	if(threadIdx.x == 0){
-		p_objective_function[dimension - processor] = p_obj[processor];
+		p_objective_function[dimension - p] = p_obj[p];
 	}
 }
 
-__global__ void nelderMead_updateMulti(int p, int dimension, int * p_evaluations, float expansion_coef, float contraction_coef, float shrink_coef, float * p_simplex, float * p_centroid, float * p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, float * p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction, bool * p_need_shrink, void * d_problem_parameters, ProblemEnum problem_type, BenchmarkProblemEnum benchmark_problem, int * p_count1, int * p_count2, int * p_count3, int * p_count4){
+__global__ void nelderMead_updateMulti(const int p, const int dimension, int * p_evaluations, const float expansion_coef, const float contraction_coef, const float shrink_coef, float * p_simplex, const float * __restrict__ p_centroid, const float * __restrict__ p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, const float * __restrict__ p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction, bool * p_need_shrink, const void * __restrict__ d_problem_parameters, int * p_count1, int * p_count2, int * p_count3, int * p_count4){
 
 	int blockId = blockIdx.x;
 	float worst = p_objective_function[dimension - blockId];
@@ -72,9 +91,9 @@ __global__ void nelderMead_updateMulti(int p, int dimension, int * p_evaluations
 		nelderMead_expansionMulti<<< 1, dimension >>>(blockId, dimension, expansion_coef, p_simplex, p_centroid, p_reflection, p_expansion);
         cudaDeviceSynchronize();
 		
-		nelderMead_calculateFromDevice(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_expansion, p_obj_expansion, true, blockId);
+		nelderMead_calculateFromDevice(1, dimension, d_problem_parameters, p_expansion, p_obj_expansion, true, blockId);
 		cudaDeviceSynchronize();
-		// /*e*/ p_evaluations[blockId] += 1;
+		/*e*/ p_evaluations[blockId] += 1;
 		
 		if(p_obj_expansion[blockId] < p_objective_function[0]){
 			nelderMead_replacementMulti<<< 1, dimension >>>(blockId, dimension, p_simplex, p_expansion, p_indexes, p_objective_function, p_obj_expansion);
@@ -104,8 +123,8 @@ __global__ void nelderMead_updateMulti(int p, int dimension, int * p_evaluations
 		}
 
 		cudaDeviceSynchronize();
-		nelderMead_calculateFromDevice(1, dimension, problem_type, benchmark_problem, d_problem_parameters, p_contraction, p_obj_contraction, true, blockId);
-		// /*e*/ p_evaluations[blockId] += 1;
+		nelderMead_calculateFromDevice(1, dimension, d_problem_parameters, p_contraction, p_obj_contraction, true, blockId);
+		/*e*/ p_evaluations[blockId] += 1;
 
 		float contraction = p_obj_contraction[blockId];
 
@@ -192,8 +211,8 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 	nelderMead_initialize<<< dimension + 1, dimension >>>(dimension, parameters.step, p_start, p_simplex);
 	cudaDeviceSynchronize();
 
-	nelderMead_calculateFromHost(dimension + 1, parameters, h_problem_parameters, p_simplex, p_objective_function);
-	// /*e*/ evaluations_used += dimension + 1;
+	nelderMead_calculateFromHost(dimension + 1, dimension, h_problem_parameters, p_simplex, p_objective_function);
+	/*e*/ evaluations_used += dimension + 1;
 	
 	thrust::sort_by_key(d_objective_function.begin(), d_objective_function.end(), d_indexes.begin());
 	
@@ -204,10 +223,10 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 		nelderMead_reflectionMulti<<< p, dimension >>>(p, dimension, parameters.reflection_coef, p_simplex, p_indexes, p_centroid, p_reflection);
 		cudaDeviceSynchronize();
 		
-		nelderMead_calculateFromHost(p, parameters, h_problem_parameters, p_reflection, p_obj_reflection);
-		// /*e*/ evaluations_used += p;
+		nelderMead_calculateFromHost(p, dimension, h_problem_parameters, p_reflection, p_obj_reflection);
+		/*e*/ evaluations_used += p;
 		
-		nelderMead_updateMulti<<< p, 1 >>>(p, dimension, p_evaluations, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, p_need_shrink, d_problem_parameters, parameters.problem_type, parameters.benchmark_problem, p_count1, p_count2, p_count3, p_count4);
+		nelderMead_updateMulti<<< p, 1 >>>(p, dimension, p_evaluations, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, p_need_shrink, d_problem_parameters, p_count1, p_count2, p_count3, p_count4);
 		cudaDeviceSynchronize();
 		
 		bool need_shrink = thrust::any_of(d_need_shrink.begin(), d_need_shrink.end(), thrust::identity<bool>());
@@ -217,14 +236,14 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 			cudaDeviceSynchronize();
 			
 			thrust::sequence(d_indexes.begin(), d_indexes.end());
-			nelderMead_calculateFromHost(dimension + 1, parameters, h_problem_parameters, p_simplex, p_objective_function);
-			// /*e*/ evaluations_used += dimension + 1;
+			nelderMead_calculateFromHost(dimension + 1, dimension, h_problem_parameters, p_simplex, p_objective_function);
+			/*e*/ evaluations_used += dimension + 1;
 		}
 		
 		thrust::sort_by_key(d_objective_function.begin(), d_objective_function.end(), d_indexes.begin());
 	}
 
-	// /*e*/ evaluations_used += thrust::reduce(d_evaluations.begin(), d_evaluations.end(), 0, thrust::plus<int>());
+	/*e*/ evaluations_used += thrust::reduce(d_evaluations.begin(), d_evaluations.end(), 0, thrust::plus<int>());
 
 	NelderMeadResult result;
 

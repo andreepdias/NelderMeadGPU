@@ -7,7 +7,7 @@
 
 void nelderMead_calculateVertexFast(const int dimension, int &evaluations_used, float &h_obj, const float * p_vertex, const void * problem_parameters, float * obj){
 	
-	calculateSingle3DABOffLattice(dimension, p_vertex, problem_parameters, obj);
+	nelderMead_calculateFromHost(1, dimension, problem_parameters, p_vertex, obj);
 	evaluations_used += 1;
 
 	h_obj = *obj;
@@ -16,7 +16,7 @@ void nelderMead_calculateVertexFast(const int dimension, int &evaluations_used, 
 
 void nelderMead_calculateSimplexFast(const int blocks, const int dimension, int &evaluations_used, float * p_obj_function, const float * p_simplex, const void * problem_parameters){
 
-	calculateMulti3DABOffLattice(blocks, dimension, p_simplex, p_obj_function, problem_parameters);
+	nelderMead_calculateFromHost(blocks, dimension, problem_parameters, p_simplex, p_obj_function);
 	evaluations_used += blocks;
 }
 
@@ -211,7 +211,7 @@ __global__ void nelderMead_shrinkFast(const int dimension, const float shrink_co
 	}
 }
 
-NelderMeadResult nelderMeadFast (NelderMead &parameters, void * problem_parameters = NULL)
+NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFile, void * problem_parameters = NULL)
 {
 
 	int dimension = parameters.dimension;
@@ -275,7 +275,12 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, void * problem_paramete
 	*obj = best = worst = d_obj_function[0];
 
 	nelderMead_findBestFast(dimension, numberBlocks, best, index_best, p_obj_function, obj, idx);
-	for (int k = 0; k < parameters.iterations_number; k++) {
+
+	outputFile << "0 " << best << std::endl;
+
+	int c = 0, one_percent = parameters.iterations_number / 100;
+	while (parameters.evaluations_used < parameters.iterations_number) {
+		c++;
 
 		*obj = best;
 		nelderMead_findWorstFast(dimension, numberBlocks, worst, index_worst, p_obj_function, obj, idx);
@@ -345,9 +350,13 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, void * problem_paramete
 		}
 		if (d_obj_function[index_worst] < best){ 
 			best = d_obj_function[index_worst]; 
-			index_best = index_worst; 
+			index_best = index_worst; 			
+		}
+		if(parameters.evaluations_used % one_percent == 0){
+			outputFile << parameters.evaluations_used << ' ' << best << std::endl;
 		}
 	}
+	outputFile << parameters.evaluations_used << ' ' << best << std::endl;
 	
 	NelderMeadResult result;
 	

@@ -3,25 +3,35 @@
 #include "../shared/objectiveFunctions.cuh"
 #include "../shared/util.cuh"
 
-__global__ void nelderMead_initialize(int dimension, float step, float * start, float * p_simplex){
+__global__ void nelderMead_initialize(const int dimension, const float step, const float * __restrict__ p_start, float * p_simplex){
 
     int blockId = blockIdx.x;
-    int threadId = threadIdx.x;
-    int stride = blockId * dimension;
+	int threadId = threadIdx.x;
+	int index = threadId * dimension + blockId;
+	
+	__shared__ float s;
+	float l;
 
-	p_simplex[stride +  threadId] = start[threadId];
+	if(threadId == 0){
+		s = p_start[blockId];
+	}
+	__syncthreads();
+
+	l = s;	
 	
 	if(threadId == blockId){
-		p_simplex[stride +  threadId] = start[threadId] + step;
+		l += step;
 	}
+	__syncthreads();
+
+	p_simplex[index] = l;
 }
 
-__global__ void nelderMead_centroid(int dimension, float * p_simplex, uint * p_indexes, float * p_centroid, int p = 1){
+__global__ void nelderMead_centroid(const int dimension, const float * __restrict__ p_simplex, const uint * __restrict__ p_indexes, float * p_centroid, const int p = 1){
 
 	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 	int threadsMax = dimension + 1 - p;
-
 	
 	int index = p_indexes[threadId];
 	int stride = index * dimension;
@@ -83,20 +93,22 @@ __global__ void nelderMead_centroid(int dimension, float * p_simplex, uint * p_i
 }
 
 
+__global__ void nelderMead_shrink(const int dimension, const float shrink_coef, float * p_simplex, const uint * __restrict__ p_indexes){
 
-
-__global__ void nelderMead_shrink(int dimension, float shrink_coef, float * p_simplex, uint * p_indexes){
-
-    int blockId = blockIdx.x;
+	int blockId = blockIdx.x;
 	int threadId = threadIdx.x;
 	
-	int stride_a0 = p_indexes[0] * dimension;
+	__shared__ float best;
 
-    int stride = p_indexes[blockId + 1] * dimension;
+	int stride = p_indexes[threadId + 1] * dimension;
+	
+	if(threadId == 0){
+		best = p_simplex[p_indexes[0] * dimension + blockId];
+	}
+	__syncthreads();
 
-	p_simplex[stride +  threadId] = shrink_coef * p_simplex[stride_a0 + threadId] + (1.0f - shrink_coef) * p_simplex[stride + threadId];
+	p_simplex[stride +  blockId] = shrink_coef * best + (1.0f - shrink_coef) * p_simplex[stride + blockId];
 }
-
 __device__ void sequence(uint * p_indexes, int end){
 	for(int i = 0; i < end; i++){
 		p_indexes[i] = i;

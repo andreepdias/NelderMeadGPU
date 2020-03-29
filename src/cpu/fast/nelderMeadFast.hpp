@@ -206,7 +206,7 @@ void nelderMead_shrink(int dimension, int index_best, float * p_simplex){
 	}
 }
 
-NelderMeadResult nelderMeadFast (NelderMead &parameters, void * problem_parameters = NULL)
+NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFile, void * problem_parameters = NULL)
 {
 
 	int dimension = parameters.dimension;
@@ -239,29 +239,39 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, void * problem_paramete
 	float * p_vertex 		 = &vertex[0];
 	float * p_obj_function	 = &obj_function[0];
 
+	int evaluations = 0, action, latest_improvement = 0;
+	int one_percent = parameters.evaluations_number / 100;
+
 	nelderMead_initialize(dimension, p_simplex, parameters.p_start, parameters.step);
-	nelderMead_calculateSimplex(dimension, parameters.evaluations_used, p_simplex, p_obj_function, problem_parameters);
+	nelderMead_calculateSimplex(dimension, evaluations, p_simplex, p_obj_function, problem_parameters);
+
+	latest_improvement = evaluations;
 
 	nelderMead_findBest(dimension, best, index_best, p_obj_function);
 
-	for (int k = 0; k < parameters.iterations_number; k++) {
+	outputFile << "0 " << best << std::endl;
+	
+	while (parameters.evaluations_used + evaluations < parameters.evaluations_number) {
 
 		nelderMead_findWorst(dimension, worst, index_worst, p_obj_function);
 
 		nelderMead_centroid(dimension, index_worst, p_simplex, p_centroid);
 
 		nelderMead_reflection(dimension, index_worst, parameters.reflection_coef, p_simplex, p_centroid, p_reflection);
-		nelderMead_calculateVertex(parameters.evaluations_used, obj_reflection, p_reflection, problem_parameters);
+		nelderMead_calculateVertex(evaluations, obj_reflection, p_reflection, problem_parameters);
 
+		action = 0;
 		if(obj_reflection < best){
 
 			nelderMead_expansion(dimension, parameters.expansion_coef, p_centroid, p_reflection, p_vertex);
-			nelderMead_calculateVertex(parameters.evaluations_used, obj_vertex, p_vertex, problem_parameters);
+			nelderMead_calculateVertex(evaluations, obj_vertex, p_vertex, problem_parameters);
 
 			if(obj_vertex < best){
 				nelderMead_replacement(dimension, index_worst, p_simplex, p_vertex, obj_vertex, p_obj_function);
+				action = 1;
 			}else{
 				nelderMead_replacement(dimension, index_worst, p_simplex, p_reflection, obj_reflection, p_obj_function);
+				action = 2;
 			}
 		}else{
 			int c = 0;
@@ -274,6 +284,7 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, void * problem_paramete
 			/* Se reflection melhor que segundo pior vértice (e pior) */
 			if(c >= 2){
 				nelderMead_replacement(dimension, index_worst, p_simplex, p_reflection, obj_reflection, p_obj_function);
+				action = 10;
 			}else{
 				if(obj_reflection < worst){
 					nelderMead_contraction(dimension, parameters.contraction_coef, p_centroid, 0, p_reflection, p_vertex);
@@ -282,17 +293,20 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, void * problem_paramete
 					nelderMead_contraction(dimension, parameters.contraction_coef, p_centroid, index_worst, p_simplex, p_vertex);
 
 				}
-				nelderMead_calculateVertex(parameters.evaluations_used, obj_vertex, p_vertex, problem_parameters);
+				nelderMead_calculateVertex(evaluations, obj_vertex, p_vertex, problem_parameters);
 
 				 if(obj_vertex < obj_reflection and obj_vertex < worst){
 					nelderMead_replacement(dimension, index_worst, p_simplex, p_vertex, obj_vertex, p_obj_function);
+					action = 100;
 
 				 }else if(obj_reflection < worst){
 					nelderMead_replacement(dimension, index_worst, p_simplex, p_reflection, obj_reflection, p_obj_function);
+					action = 101;
 
 				}else{
+					action = 102;
 					nelderMead_shrink(dimension, index_best, p_simplex);
-					nelderMead_calculateSimplex(dimension, parameters.evaluations_used, p_simplex, p_obj_function, problem_parameters);
+					nelderMead_calculateSimplex(dimension, evaluations, p_simplex, p_obj_function, problem_parameters);
 
 					nelderMead_findBest(dimension, best, index_best, p_obj_function);
 				}
@@ -302,14 +316,26 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, void * problem_paramete
 		if (p_obj_function[index_worst] < best){ 
 			best = p_obj_function[index_worst]; 
 			index_best = index_worst; 
+
+			if(evaluations > one_percent){
+				parameters.evaluations_used += evaluations;
+				evaluations = 0;
+				outputFile << parameters.evaluations_used << ' ' << best << std::endl;
+			}
+
+			latest_improvement = parameters.evaluations_used + evaluations;
 		}
 	}
+	parameters.evaluations_used += evaluations;
+
+	outputFile << parameters.evaluations_used << ' ' << best << std::endl;
 	
 	NelderMeadResult result;
 
 	result.best = best;
 	result.best_vertex.resize(dimension);
 	result.evaluations_used = parameters.evaluations_used;
+	result.latest_improvement = latest_improvement;
 
 	for(int i = 0; i < dimension; i++){
 		result.best_vertex[i] = p_simplex[index_best * dimension + i];
