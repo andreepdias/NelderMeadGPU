@@ -165,7 +165,7 @@ __global__ void findMin(const float * __restrict__ input, const int size, float 
 		__syncthreads();
 	
 	  
-		if(threadId < 16 && threadId + 16 < 32){
+		if(threadId < 16 && threadId + 16 < 32 and index + 16 < size){
 			if(threads_min[threadId] > threads_min[threadId + 16]){
 				threads_min[threadId] = threads_min[threadId + 16];
 				threads_id[threadId] = threads_id[threadId + 16];
@@ -173,7 +173,7 @@ __global__ void findMin(const float * __restrict__ input, const int size, float 
 		}  
 		__syncthreads();
 	  
-		if(threadId < 8 && threadId + 8 < 32){
+		if(threadId < 8 && threadId + 8 < 32 and index + 8 < size){
 			if(threads_min[threadId] > threads_min[threadId + 8]){
 				threads_min[threadId] = threads_min[threadId + 8];
 				threads_id[threadId] = threads_id[threadId + 8];
@@ -181,7 +181,7 @@ __global__ void findMin(const float * __restrict__ input, const int size, float 
 		}  
 		__syncthreads();
 	  
-		if(threadId < 4 && threadId + 4 < 32){
+		if(threadId < 4 && threadId + 4 < 32 and index + 4 < size){
 			if(threads_min[threadId] > threads_min[threadId + 4]){
 				threads_min[threadId] = threads_min[threadId + 4];
 				threads_id[threadId] = threads_id[threadId + 4];
@@ -189,7 +189,7 @@ __global__ void findMin(const float * __restrict__ input, const int size, float 
 		}  
 		__syncthreads();
 	  
-		if(threadId < 2 && threadId + 2 < 32){
+		if(threadId < 2 && threadId + 2 < 32 and index + 2 < size){
 			if(threads_min[threadId] > threads_min[threadId + 2]){
 				threads_min[threadId] = threads_min[threadId + 2];
 				threads_id[threadId] = threads_id[threadId + 2];
@@ -197,7 +197,7 @@ __global__ void findMin(const float * __restrict__ input, const int size, float 
 		}  
 		__syncthreads();
 	
-		if(threadId < 1 && threadId + 1 < 32){
+		if(threadId < 1 && threadId + 1 < 32 and index + 1 < size){
 			if(threads_min[threadId] > threads_min[threadId + 1]){
 				threads_min[threadId] = threads_min[threadId + 1];
 				threads_id[threadId] = threads_id[threadId + 1];

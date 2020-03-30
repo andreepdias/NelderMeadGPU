@@ -3,73 +3,58 @@
 #include "util.hpp"
 #include "abOffLattice.hpp"
 
-void readInputABOffLatttice(NelderMead &parameters, ABOffLattice * &parametersAB, std::ifstream &input_file){
-    
-    parametersAB = new ABOffLattice();
-
-    std::string protein_name, protein_chain;
-    std::vector<float> angles;
-
-    input_file >> protein_name;
-    input_file >> protein_chain;
-
-    float angle;
-    while(input_file >> angle){
-        angles.push_back(angle * PI / 180.0f);
-    }
-
-    parameters.start = angles;
-    parameters.p_start = &parameters.start[0];
-
-    parameters.dimension = angles.size();
-
-    (*parametersAB).protein_name = protein_name;
-    (*parametersAB).aa_sequence = protein_chain;
-    (*parametersAB).aminoacid_sequence = (*parametersAB).aa_sequence.c_str();
-    (*parametersAB).protein_length = protein_chain.size();
-}
-
-bool readInput(NelderMead &parameters, std::ifstream &input_file, ABOffLattice * &parametersAB){
-
-    int executions_number, evaluations_number, iterations_number, dimension;
+void readInput(std::ifstream &input_file, OptimizationTypeEnum &optimization_type, int &executions, int &evaluations, int &proteins_evalued, int &p){
 
     std::string s;
-    input_file >> s;
 
     input_file >> s;
 
     if(s == "SINGLE"){
-        parameters.optimization_type = SINGLE;
+        optimization_type = SINGLE;
     }else if(s == "MULTI"){
-        parameters.optimization_type = MULTI;
-
-        int p;
+        optimization_type = MULTI;
         input_file >> p;
-        parameters.p = p;
-    }else if(s == "FAST"){
-        parameters.optimization_type = FAST;
     }else{
-        printf("E necessario especificar a variacao do Nelder Mead. Tente:\nSINGLE ou MULTI.\n");
-        return false;
+        optimization_type = FAST;
     }
-    
-    input_file >> executions_number;
-    input_file >> evaluations_number;
-    input_file >> dimension;
 
-    parameters.executions_number = executions_number;
-    parameters.evaluations_number = evaluations_number;
-    parameters.dimension = dimension;
-    
-    readInputABOffLatttice(parameters, parametersAB, input_file);
+    input_file >> executions;
+    input_file >> evaluations;
+    input_file >> proteins_evalued;
+}
 
-    input_file >> s;
+void readInputProteins(std::ifstream &input_file, int &evaluations, int &p, OptimizationTypeEnum &optimization_type, std::vector<NelderMead> &parameters, std::vector<ABOffLattice*> &parametersAB){
 
-    if(s == "SHOW_BEST_VERTEX"){
-        parameters.show_best_vertex = true;
-    }else{
-        parameters.show_best_vertex = false;
+    int n = parameters.size();
+
+    std::string name, chain;
+    std::vector<float> angles;
+    int psl, dim;
+    float x;
+
+    for(int i = 0; i < n; i++){
+        input_file >> name;
+        input_file >> psl >> dim;
+        input_file >> chain;
+
+        angles.resize(dim);
+        for(int j = 0; j < dim; j++){
+            input_file >> x;
+            angles[j] = (x * PI / 180.0f);
+        }
+
+        parameters[i].optimization_type = optimization_type;
+        parameters[i].dimension = dim;
+        parameters[i].evaluations_number = evaluations;
+        parameters[i].start = angles;
+        parameters[i].p_start = &parameters[i].start[0];
+        parameters[i].show_best_vertex = false;
+        parameters[i].p = p;
+
+        parametersAB[i] = new ABOffLattice();
+        (*parametersAB[i]).protein_length = psl;
+        (*parametersAB[i]).protein_name = name;
+        (*parametersAB[i]).aa_sequence = chain;
+        (*parametersAB[i]).aminoacid_sequence = (*parametersAB[i]).aa_sequence.c_str();
     }
-    
-    return true;
 }

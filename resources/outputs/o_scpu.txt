@@ -1,0 +1,616 @@
+Executions:  10
+Evaluations:  500000
+Proteins Evalued: 13
+
+-----------------------------------------------
+Protein Name: 1CB3
+Protein Chain: BABBBAABBAAAB
+Protein Length: 13
+Dimension: 21
+
+    -> Results:
+   Run #1
+Elapsed Time: 1.4514
+Obj Function: -8.3996201
+   Run #2
+Elapsed Time: 1.5328
+Obj Function: -8.3996201
+   Run #3
+Elapsed Time: 1.5195
+Obj Function: -8.3996201
+   Run #4
+Elapsed Time: 1.4465
+Obj Function: -8.3996201
+   Run #5
+Elapsed Time: 1.4380
+Obj Function: -8.3996201
+   Run #6
+Elapsed Time: 1.4423
+Obj Function: -8.3996201
+   Run #7
+Elapsed Time: 1.4348
+Obj Function: -8.3996201
+   Run #8
+Elapsed Time: 1.4384
+Obj Function: -8.3996201
+   Run #9
+Elapsed Time: 1.4375
+Obj Function: -8.3996201
+   Run #10
+Elapsed Time: 1.4351
+Obj Function: -8.3996201
+
+   -All Runs:-
+Mean Elapsed Time: 1.4576
+Standard Deviation Elapsed Time: 0.0347
+
+Mean Objective Function: -8.3996
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -8.3996201
+Worst of all runs: -8.3996201
+-----------------------------------------------
+Protein Name: 1BXL
+Protein Chain: ABAABBAAAAABBABB
+Protein Length: 16
+Dimension: 27
+
+    -> Results:
+   Run #1
+Elapsed Time: 2.2977
+Obj Function: -16.5264244
+   Run #2
+Elapsed Time: 2.3089
+Obj Function: -16.5264244
+   Run #3
+Elapsed Time: 2.2822
+Obj Function: -16.5264244
+   Run #4
+Elapsed Time: 2.2814
+Obj Function: -16.5264244
+   Run #5
+Elapsed Time: 2.2765
+Obj Function: -16.5264244
+   Run #6
+Elapsed Time: 2.2778
+Obj Function: -16.5264244
+   Run #7
+Elapsed Time: 2.2777
+Obj Function: -16.5264244
+   Run #8
+Elapsed Time: 2.2903
+Obj Function: -16.5264244
+   Run #9
+Elapsed Time: 2.2855
+Obj Function: -16.5264244
+   Run #10
+Elapsed Time: 2.2802
+Obj Function: -16.5264244
+
+   -All Runs:-
+Mean Elapsed Time: 2.2858
+Standard Deviation Elapsed Time: 0.0099
+
+Mean Objective Function: -16.5264
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -16.5264244
+Worst of all runs: -16.5264244
+-----------------------------------------------
+Protein Name: 1EDP
+Protein Chain: ABABBAABBBAABBABA
+Protein Length: 17
+Dimension: 29
+
+    -> Results:
+   Run #1
+Elapsed Time: 2.5780
+Obj Function: -14.5645590
+   Run #2
+Elapsed Time: 2.5635
+Obj Function: -14.5645590
+   Run #3
+Elapsed Time: 2.5629
+Obj Function: -14.5645590
+   Run #4
+Elapsed Time: 2.5590
+Obj Function: -14.5645590
+   Run #5
+Elapsed Time: 2.5610
+Obj Function: -14.5645590
+   Run #6
+Elapsed Time: 2.5622
+Obj Function: -14.5645590
+   Run #7
+Elapsed Time: 2.5599
+Obj Function: -14.5645590
+   Run #8
+Elapsed Time: 2.5601
+Obj Function: -14.5645590
+   Run #9
+Elapsed Time: 2.5595
+Obj Function: -14.5645590
+   Run #10
+Elapsed Time: 2.5600
+Obj Function: -14.5645590
+
+   -All Runs:-
+Mean Elapsed Time: 2.5626
+Standard Deviation Elapsed Time: 0.0053
+
+Mean Objective Function: -14.5646
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -14.5645590
+Worst of all runs: -14.5645590
+-----------------------------------------------
+Protein Name: 2H3S
+Protein Chain: AABBAABBBBBABBBABAABBBBBB
+Protein Length: 25
+Dimension: 45
+
+    -> Results:
+   Run #1
+Elapsed Time: 6.0313
+Obj Function: -17.1192169
+   Run #2
+Elapsed Time: 6.0111
+Obj Function: -17.1192169
+   Run #3
+Elapsed Time: 6.0077
+Obj Function: -17.1192169
+   Run #4
+Elapsed Time: 6.0029
+Obj Function: -17.1192169
+   Run #5
+Elapsed Time: 6.0090
+Obj Function: -17.1192169
+   Run #6
+Elapsed Time: 6.0010
+Obj Function: -17.1192169
+   Run #7
+Elapsed Time: 6.0005
+Obj Function: -17.1192169
+   Run #8
+Elapsed Time: 6.0107
+Obj Function: -17.1192169
+   Run #9
+Elapsed Time: 6.0014
+Obj Function: -17.1192169
+   Run #10
+Elapsed Time: 6.0000
+Obj Function: -17.1192169
+
+   -All Runs:-
+Mean Elapsed Time: 6.0076
+Standard Deviation Elapsed Time: 0.0089
+
+Mean Objective Function: -17.1192
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -17.1192169
+Worst of all runs: -17.1192169
+-----------------------------------------------
+Protein Name: 2KGU
+Protein Chain: ABAABBAABABBABAABAABABABABABAAABBB
+Protein Length: 34
+Dimension: 63
+
+    -> Results:
+   Run #1
+Elapsed Time: 11.7615
+Obj Function: -43.5254021
+   Run #2
+Elapsed Time: 11.7321
+Obj Function: -43.5254021
+   Run #3
+Elapsed Time: 11.7368
+Obj Function: -43.5254021
+   Run #4
+Elapsed Time: 11.7365
+Obj Function: -43.5254021
+   Run #5
+Elapsed Time: 11.7350
+Obj Function: -43.5254021
+   Run #6
+Elapsed Time: 11.7507
+Obj Function: -43.5254021
+   Run #7
+Elapsed Time: 11.7368
+Obj Function: -43.5254021
+   Run #8
+Elapsed Time: 11.7412
+Obj Function: -43.5254021
+   Run #9
+Elapsed Time: 11.7345
+Obj Function: -43.5254021
+   Run #10
+Elapsed Time: 11.7362
+Obj Function: -43.5254021
+
+   -All Runs:-
+Mean Elapsed Time: 11.7401
+Standard Deviation Elapsed Time: 0.0086
+
+Mean Objective Function: -43.5254
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -43.5254021
+Worst of all runs: -43.5254021
+-----------------------------------------------
+Protein Name: 1TZ4
+Protein Chain: BABBABBAABBAAABBAABBAABABBBABAABBBBBB
+Protein Length: 37
+Dimension: 69
+
+    -> Results:
+   Run #1
+Elapsed Time: 14.0183
+Obj Function: -27.7541294
+   Run #2
+Elapsed Time: 13.9717
+Obj Function: -27.7541294
+   Run #3
+Elapsed Time: 13.9679
+Obj Function: -27.7541294
+   Run #4
+Elapsed Time: 13.9691
+Obj Function: -27.7541294
+   Run #5
+Elapsed Time: 13.9708
+Obj Function: -27.7541294
+   Run #6
+Elapsed Time: 13.9674
+Obj Function: -27.7541294
+   Run #7
+Elapsed Time: 14.0674
+Obj Function: -27.7541294
+   Run #8
+Elapsed Time: 14.0312
+Obj Function: -27.7541294
+   Run #9
+Elapsed Time: 13.9672
+Obj Function: -27.7541294
+   Run #10
+Elapsed Time: 13.9693
+Obj Function: -27.7541294
+
+   -All Runs:-
+Mean Elapsed Time: 13.9900
+Standard Deviation Elapsed Time: 0.0340
+
+Mean Objective Function: -27.7541
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -27.7541294
+Worst of all runs: -27.7541294
+-----------------------------------------------
+Protein Name: 1TZ5
+Protein Chain: AAABAABAABBABABBAABBBBAABBBABAABBABBB
+Protein Length: 37
+Dimension: 69
+
+    -> Results:
+   Run #1
+Elapsed Time: 14.1314
+Obj Function: -35.1556816
+   Run #2
+Elapsed Time: 14.1032
+Obj Function: -35.1556816
+   Run #3
+Elapsed Time: 14.1087
+Obj Function: -35.1556816
+   Run #4
+Elapsed Time: 14.0973
+Obj Function: -35.1556816
+   Run #5
+Elapsed Time: 14.1226
+Obj Function: -35.1556816
+   Run #6
+Elapsed Time: 14.1077
+Obj Function: -35.1556816
+   Run #7
+Elapsed Time: 14.1012
+Obj Function: -35.1556816
+   Run #8
+Elapsed Time: 14.1011
+Obj Function: -35.1556816
+   Run #9
+Elapsed Time: 14.0951
+Obj Function: -35.1556816
+   Run #10
+Elapsed Time: 14.1181
+Obj Function: -35.1556816
+
+   -All Runs:-
+Mean Elapsed Time: 14.1086
+Standard Deviation Elapsed Time: 0.0112
+
+Mean Objective Function: -35.1557
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -35.1556816
+Worst of all runs: -35.1556816
+-----------------------------------------------
+Protein Name: 1AGT
+Protein Chain: AAAABABABABABAABAABBAAABBABAABBBABABAB
+Protein Length: 38
+Dimension: 71
+
+    -> Results:
+   Run #1
+Elapsed Time: 15.0845
+Obj Function: -55.5099831
+   Run #2
+Elapsed Time: 15.0694
+Obj Function: -55.5099831
+   Run #3
+Elapsed Time: 15.0617
+Obj Function: -55.5099831
+   Run #4
+Elapsed Time: 15.0667
+Obj Function: -55.5099831
+   Run #5
+Elapsed Time: 15.0679
+Obj Function: -55.5099831
+   Run #6
+Elapsed Time: 15.0643
+Obj Function: -55.5099831
+   Run #7
+Elapsed Time: 15.0640
+Obj Function: -55.5099831
+   Run #8
+Elapsed Time: 15.0645
+Obj Function: -55.5099831
+   Run #9
+Elapsed Time: 15.0643
+Obj Function: -55.5099831
+   Run #10
+Elapsed Time: 15.0622
+Obj Function: -55.5099831
+
+   -All Runs:-
+Mean Elapsed Time: 15.0669
+Standard Deviation Elapsed Time: 0.0063
+
+Mean Objective Function: -55.5100
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -55.5099831
+Worst of all runs: -55.5099831
+-----------------------------------------------
+Protein Name: 1CRN
+Protein Chain: BBAAABAAABBBBBAABAAABABAAAABBBAAAAAAAABAAABBAB
+Protein Length: 46
+Dimension: 87
+
+    -> Results:
+   Run #1
+Elapsed Time: 22.5539
+Obj Function: -82.7629700
+   Run #2
+Elapsed Time: 22.5330
+Obj Function: -82.7629700
+   Run #3
+Elapsed Time: 22.5394
+Obj Function: -82.7629700
+   Run #4
+Elapsed Time: 22.5321
+Obj Function: -82.7629700
+   Run #5
+Elapsed Time: 22.5217
+Obj Function: -82.7629700
+   Run #6
+Elapsed Time: 22.5395
+Obj Function: -82.7629700
+   Run #7
+Elapsed Time: 22.5356
+Obj Function: -82.7629700
+   Run #8
+Elapsed Time: 22.5246
+Obj Function: -82.7629700
+   Run #9
+Elapsed Time: 22.5236
+Obj Function: -82.7629700
+   Run #10
+Elapsed Time: 22.5132
+Obj Function: -82.7629700
+
+   -All Runs:-
+Mean Elapsed Time: 22.5316
+Standard Deviation Elapsed Time: 0.0109
+
+Mean Objective Function: -82.7630
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -82.7629700
+Worst of all runs: -82.7629700
+-----------------------------------------------
+Protein Name: 1HVV
+Protein Chain: BAABBABBBBBBAABABBBABBABBABABAAAAABBBABAABBABBBABBAABBABBAABBBBBAABBBBBABBB
+Protein Length: 75
+Dimension: 145
+
+    -> Results:
+   Run #1
+Elapsed Time: 64.2608
+Obj Function: -59.6500587
+   Run #2
+Elapsed Time: 64.4336
+Obj Function: -59.6500587
+   Run #3
+Elapsed Time: 64.4279
+Obj Function: -59.6500587
+   Run #4
+Elapsed Time: 64.2360
+Obj Function: -59.6500587
+   Run #5
+Elapsed Time: 64.2295
+Obj Function: -59.6500587
+   Run #6
+Elapsed Time: 64.2302
+Obj Function: -59.6500587
+   Run #7
+Elapsed Time: 64.4358
+Obj Function: -59.6500587
+   Run #8
+Elapsed Time: 64.2316
+Obj Function: -59.6500587
+   Run #9
+Elapsed Time: 64.2755
+Obj Function: -59.6500587
+   Run #10
+Elapsed Time: 64.2721
+Obj Function: -59.6500587
+
+   -All Runs:-
+Mean Elapsed Time: 64.3033
+Standard Deviation Elapsed Time: 0.0861
+
+Mean Objective Function: -59.6501
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -59.6500587
+Worst of all runs: -59.6500587
+-----------------------------------------------
+Protein Name: 1GK4
+Protein Chain: ABABAABABBBBABBBABBABBBBAABAABBBBBAABABBBABBABBBAABBABBBBBAABABAAABABAABBBBAABABBBBA
+Protein Length: 84
+Dimension: 163
+
+    -> Results:
+   Run #1
+Elapsed Time: 84.3645
+Obj Function: -64.9908905
+   Run #2
+Elapsed Time: 84.3375
+Obj Function: -64.9908905
+   Run #3
+Elapsed Time: 85.5536
+Obj Function: -64.9908905
+   Run #4
+Elapsed Time: 84.7568
+Obj Function: -64.9908905
+   Run #5
+Elapsed Time: 84.7374
+Obj Function: -64.9908905
+   Run #6
+Elapsed Time: 84.7403
+Obj Function: -64.9908905
+   Run #7
+Elapsed Time: 84.8311
+Obj Function: -64.9908905
+   Run #8
+Elapsed Time: 84.5994
+Obj Function: -64.9908905
+   Run #9
+Elapsed Time: 84.6096
+Obj Function: -64.9908905
+   Run #10
+Elapsed Time: 84.6357
+Obj Function: -64.9908905
+
+   -All Runs:-
+Mean Elapsed Time: 84.7166
+Standard Deviation Elapsed Time: 0.3187
+
+Mean Objective Function: -64.9909
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -64.9908905
+Worst of all runs: -64.9908905
+-----------------------------------------------
+Protein Name: 1PCH
+Protein Chain: ABBBAAABBBAAABABAABAAABBABBBBBBABAAABBBBABABBAABAAAAAABBABBABABABABBABBAABAABBBAABBAAABA
+Protein Length: 88
+Dimension: 171
+
+    -> Results:
+   Run #1
+Elapsed Time: 91.9744
+Obj Function: -119.2883911
+   Run #2
+Elapsed Time: 91.8812
+Obj Function: -119.2883911
+   Run #3
+Elapsed Time: 91.8658
+Obj Function: -119.2883911
+   Run #4
+Elapsed Time: 91.8132
+Obj Function: -119.2883911
+   Run #5
+Elapsed Time: 91.7755
+Obj Function: -119.2883911
+   Run #6
+Elapsed Time: 92.5643
+Obj Function: -119.2883911
+   Run #7
+Elapsed Time: 92.4859
+Obj Function: -119.2883911
+   Run #8
+Elapsed Time: 92.5855
+Obj Function: -119.2883911
+   Run #9
+Elapsed Time: 92.0011
+Obj Function: -119.2883911
+   Run #10
+Elapsed Time: 92.0685
+Obj Function: -119.2883911
+
+   -All Runs:-
+Mean Elapsed Time: 92.1015
+Standard Deviation Elapsed Time: 0.3028
+
+Mean Objective Function: -119.2884
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -119.2883911
+Worst of all runs: -119.2883911
+-----------------------------------------------
+Protein Name: 2EWH
+Protein Chain: AABABAAAAAAABBBAAAAAABAABAABBAABABAAABBBAAAABABAAABABBAAABAAABAAABAABBAABAAAAABAAABABBBABBAAABAABA
+Protein Length: 98
+Dimension: 191
+
+    -> Results:
+   Run #1
+Elapsed Time: 114.7725
+Obj Function: -199.6014709
+   Run #2
+Elapsed Time: 114.7834
+Obj Function: -199.6014709
+   Run #3
+Elapsed Time: 115.2648
+Obj Function: -199.6014709
+   Run #4
+Elapsed Time: 115.1570
+Obj Function: -199.6014709
+   Run #5
+Elapsed Time: 114.9675
+Obj Function: -199.6014709
+   Run #6
+Elapsed Time: 114.7192
+Obj Function: -199.6014709
+   Run #7
+Elapsed Time: 114.9396
+Obj Function: -199.6014709
+   Run #8
+Elapsed Time: 115.0159
+Obj Function: -199.6014709
+   Run #9
+Elapsed Time: 115.4332
+Obj Function: -199.6014709
+   Run #10
+Elapsed Time: 114.7215
+Obj Function: -199.6014709
+
+   -All Runs:-
+Mean Elapsed Time: 114.9775
+Standard Deviation Elapsed Time: 0.2318
+
+Mean Objective Function: -199.6015
+Standard Deviation Objective Function: 0.0000
+
+Best of all runs: -199.6014709
+Worst of all runs: -199.6014709
+-----------------------------------------------

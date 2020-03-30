@@ -83,6 +83,8 @@ __global__ void nelderMead_updateMulti(const int p, const int dimension, int * p
 	// cooperative_groups::grid_group g = cooperative_groups::this_grid();
 	// g.sync();
 
+	p_evaluations[blockId] = 0;
+
 	p_need_shrink[blockId] = false;
 
 	if(reflection < best){
@@ -208,7 +210,7 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 	thrust::copy(parameters.p_start, parameters.p_start + dimension, d_start.begin());	
 	thrust::sequence(d_indexes.begin(), d_indexes.end());
 
-	nelderMead_initialize<<< dimension + 1, dimension >>>(dimension, parameters.step, p_start, p_simplex);
+	nelderMead_initialize<<< dimension, dimension + 1 >>>(dimension, parameters.step, p_start, p_simplex);
 	cudaDeviceSynchronize();
 
 	nelderMead_calculateFromHost(dimension + 1, dimension, h_problem_parameters, p_simplex, p_objective_function);
@@ -216,7 +218,7 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 	
 	thrust::sort_by_key(d_objective_function.begin(), d_objective_function.end(), d_indexes.begin());
 	
-	for(int i = 0; i < parameters.iterations_number; i++){
+	while(evaluations_used < parameters.evaluations_number){
 		nelderMead_centroid<<< dimension, dimension + 1 - p >>>(dimension, p_simplex, p_indexes, p_centroid, p);
 		cudaDeviceSynchronize();
 		
@@ -229,6 +231,8 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 		nelderMead_updateMulti<<< p, 1 >>>(p, dimension, p_evaluations, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, p_need_shrink, d_problem_parameters, p_count1, p_count2, p_count3, p_count4);
 		cudaDeviceSynchronize();
 		
+		/*e*/ evaluations_used += thrust::reduce(d_evaluations.begin(), d_evaluations.end(), 0, thrust::plus<int>());
+
 		bool need_shrink = thrust::any_of(d_need_shrink.begin(), d_need_shrink.end(), thrust::identity<bool>());
 		
 		if(need_shrink){
@@ -243,7 +247,6 @@ NelderMeadResult nelderMeadMulti(NelderMead &parameters, void * h_problem_parame
 		thrust::sort_by_key(d_objective_function.begin(), d_objective_function.end(), d_indexes.begin());
 	}
 
-	/*e*/ evaluations_used += thrust::reduce(d_evaluations.begin(), d_evaluations.end(), 0, thrust::plus<int>());
 
 	NelderMeadResult result;
 

@@ -9,7 +9,7 @@
 
 NelderMeadResult nelderMead(NelderMead &parameters, std::ofstream &output, void * h_problem_parameters = NULL, void * d_problem_parameters = NULL){
 
-    // return nelderMeadFast(parameters, h_problem_parameters);
+    // return nelderMeadFast(parameters, output, h_problem_parameters);
 
     if(parameters.optimization_type == SINGLE){
         return nelderMeadSingle(parameters, h_problem_parameters, d_problem_parameters);

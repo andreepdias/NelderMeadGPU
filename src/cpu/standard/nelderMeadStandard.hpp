@@ -145,7 +145,7 @@ void printEvaluationsUpdate(NelderMead &p, int add){
 
 }
 
-void nelderMead_update(int k, NelderMead &p, void * problem_parameters, int * p_count){
+void nelderMead_update(NelderMead &p, void * problem_parameters, int * p_count){
 
 	if(p.p_obj_reflection[0].first < p.p_objective_function[0].first){
 
@@ -153,7 +153,7 @@ void nelderMead_update(int k, NelderMead &p, void * problem_parameters, int * p_
 		
 		nelderMead_expansion(p);		
 		nelderMead_calculate(p, problem_parameters, 1, p.p_expansion, p.p_obj_expansion);
-		// /*e*/ p.evaluations_used += 1;
+		/*e*/ p.evaluations_used += 1;
 
 
 		if(p.p_obj_expansion[0].first < p.p_objective_function[0].first){
@@ -171,7 +171,7 @@ void nelderMead_update(int k, NelderMead &p, void * problem_parameters, int * p_
 	}else{
 		nelderMead_contraction(p);
 		nelderMead_calculate(p, problem_parameters, 1, p.p_contraction, p.p_obj_contraction);
-		// /*e*/ p.evaluations_used += 1;
+		/*e*/ p.evaluations_used += 1;
 
 		if(p.p_obj_contraction[0].first < p.p_objective_function[p.dimension].first){
 
@@ -184,7 +184,7 @@ void nelderMead_update(int k, NelderMead &p, void * problem_parameters, int * p_
 
 			nelderMead_shrink(p);
 			nelderMead_calculate(p, problem_parameters, p.dimension + 1, p.p_simplex, p.p_objective_function);
-			// /*e*/ p.evaluations_used += p.dimension + 1;
+			/*e*/ p.evaluations_used += p.dimension + 1;
 
 			
 		}
@@ -241,18 +241,18 @@ NelderMeadResult nelderMeadSingle(NelderMead &parameters, void * problem_paramet
 	nelderMead_initialize(parameters);
 
 	nelderMead_calculate(parameters, problem_parameters, dimension + 1, parameters.p_simplex, parameters.p_objective_function);
-	// /*e*/ parameters.evaluations_used += dimension + 1;
+	/*e*/ parameters.evaluations_used += dimension + 1;
 	std::sort(objective_function.begin(), objective_function.end());
 
-	for(int i = 0; i < parameters.iterations_number; i++){
+	while(parameters.evaluations_used < parameters.evaluations_number){
 
 		nelderMead_centroid(parameters);
 
 		nelderMead_reflection(parameters);
 		nelderMead_calculate(parameters, problem_parameters, 1, parameters.p_reflection, parameters.p_obj_reflection);
-		// /*e*/ parameters.evaluations_used += 1;
+		/*e*/ parameters.evaluations_used += 1;
 
-		nelderMead_update(i, parameters, problem_parameters, p_count);
+		nelderMead_update(parameters, problem_parameters, p_count);
 
 		std::sort(objective_function.begin(), objective_function.end());
 	}

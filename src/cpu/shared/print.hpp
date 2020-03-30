@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util.hpp"
+
 void printVertex(int dimension, float * p_vertex, const char * msg){
 	printf("%s:\n", msg);
 	for(int i = 0; i < dimension; i++){

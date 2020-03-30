@@ -249,7 +249,7 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 
 	nelderMead_findBest(dimension, best, index_best, p_obj_function);
 
-	outputFile << "0 " << best << std::endl;
+	// outputFile << "0 " << best << std::endl;
 	
 	while (parameters.evaluations_used + evaluations < parameters.evaluations_number) {
 
@@ -320,7 +320,7 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 			if(evaluations > one_percent){
 				parameters.evaluations_used += evaluations;
 				evaluations = 0;
-				outputFile << parameters.evaluations_used << ' ' << best << std::endl;
+				// outputFile << parameters.evaluations_used << ' ' << best << std::endl;
 			}
 
 			latest_improvement = parameters.evaluations_used + evaluations;
@@ -328,7 +328,7 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 	}
 	parameters.evaluations_used += evaluations;
 
-	outputFile << parameters.evaluations_used << ' ' << best << std::endl;
+	// outputFile << parameters.evaluations_used << ' ' << best << std::endl;
 	
 	NelderMeadResult result;
 

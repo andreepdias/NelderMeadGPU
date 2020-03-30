@@ -3,7 +3,6 @@ c:
 
 g:
 	nvcc -arch=sm_60 -rdc=true -std=c++11 -O3 -use_fast_math src/gpu/main.cu -o g
-	./g
 
 t:
 	g++ src/test.cpp -std=c++11 -O3 -o t

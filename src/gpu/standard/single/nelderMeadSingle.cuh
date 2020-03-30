@@ -78,12 +78,14 @@ __global__ void nelderMead_replacementSingle(const int dimension, float * p_simp
 	}
 }
 
-__global__ void nelderMead_updateSingle(const int dimension, const int numberBlocks, int * p_evaluations, const float expansion_coef, const float contraction_coef, const float shrink_coef, float * p_simplex, const float * __restrict__ p_centroid, const  float * __restrict__ p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, const float * __restrict__ p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction,  const void * __restrict__ d_problem_parameters, ProblemEnum problem_type, BenchmarkProblemEnum benchmark_problem, int * p_count){
+__global__ void nelderMead_updateSingle(const int dimension, const int numberBlocks, int * p_evaluations, const float expansion_coef, const float contraction_coef, const float shrink_coef, float * p_simplex, const float * __restrict__ p_centroid, const  float * __restrict__ p_reflection, float * p_expansion, float * p_contraction, uint * p_indexes, float * p_objective_function, const float * __restrict__ p_obj_reflection, float * p_obj_expansion, float * p_obj_contraction,  const void * __restrict__ d_problem_parameters, int * p_count){
 
 	float best = p_objective_function[0];
 	float worst = p_objective_function[dimension];
 	float reflection = p_obj_reflection[0];
 	float c;
+
+	p_evaluations[0] = 0;
 
 	if(reflection < best){
 		// /*c*/ p_count[0] += 1;
@@ -209,7 +211,7 @@ NelderMeadResult nelderMeadSingle(NelderMead &parameters, void * h_problem_param
 	
 	int numberBlocks = ceil(dimension / 32.0f);
 	
-	for(int i = 0; i < parameters.iterations_number; i++){
+	while(evaluations_used < parameters.evaluations_number){
 		
 		nelderMead_centroid<<< dimension, dimension >>>(dimension, p_simplex, p_indexes, p_centroid);
 		cudaDeviceSynchronize();
@@ -222,13 +224,14 @@ NelderMeadResult nelderMeadSingle(NelderMead &parameters, void * h_problem_param
 		nelderMead_calculateFromHost(1, dimension, h_problem_parameters, p_reflection, p_obj_reflection);
 		/*e*/ evaluations_used += 1;
 		
-		nelderMead_updateSingle<<< 1, 1 >>>(dimension, numberBlocks, p_evaluations, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, d_problem_parameters, parameters.problem_type, parameters.benchmark_problem, p_count);
+		nelderMead_updateSingle<<< 1, 1 >>>(dimension, numberBlocks, p_evaluations, parameters.expansion_coef, parameters.contraction_coef, parameters.shrink_coef, p_simplex, p_centroid, p_reflection, p_expansion, p_contraction, p_indexes, p_objective_function, p_obj_reflection, p_obj_expansion, p_obj_contraction, d_problem_parameters, p_count);
 		cudaDeviceSynchronize();
+		evaluations_used += d_evaluations[0];
 		
 		thrust::sort_by_key(d_obj_function.begin(), d_obj_function.end(), d_indexes.begin());
 	}
-
-	/*e*/ evaluations_used += thrust::reduce(d_evaluations.begin(), d_evaluations.end(), 0, thrust::plus<int>());
+	// /*e*/ evaluations_used += thrust::reduce(d_evaluations.begin(), d_evaluations.end(), 0, thrust::plus<int>());
+	
 
 
 	NelderMeadResult result;
