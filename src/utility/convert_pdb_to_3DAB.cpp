@@ -67,7 +67,7 @@ int main(){
     std::sort(proteins.begin(), proteins.end(), comp);
 
     
-    printf("Proteins number: %d\n\n", (int)proteins.size());
+    printf("Proteins count: %d\n\n", (int)proteins.size());
 
     for(int i = 0; i < (int)proteins.size(); i++){
         std::cout << proteins[i].protein_name << std::endl;

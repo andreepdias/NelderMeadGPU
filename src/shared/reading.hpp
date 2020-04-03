@@ -34,13 +34,15 @@ void readInputProteins(std::ifstream &input_file, int &evaluations, int &p, Opti
 
     for(int i = 0; i < n; i++){
         input_file >> name;
-        input_file >> psl >> dim;
         input_file >> chain;
+        psl = chain.size();
+        dim = psl * 2 - 5;
 
         angles.resize(dim);
         for(int j = 0; j < dim; j++){
             input_file >> x;
             angles[j] = (x * PI / 180.0f);
+            // angles[j] = x;
         }
 
         parameters[i].optimization_type = optimization_type;

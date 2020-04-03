@@ -21,9 +21,9 @@ void run(int &executions, int &proteins_evalued, std::vector<NelderMead> &parame
 
     for(int k = 0; k < proteins_evalued; k++){
 
-        if(d >= parameters[k].dimension){
-            continue;
-        }
+        // if(d >= parameters[k].dimension){
+            // continue;
+        // }
 
         ABOffLattice * d_parametersAB;
         cudaMalloc(&d_parametersAB, sizeof(ABOffLattice));
@@ -65,7 +65,7 @@ int main() {
     OptimizationTypeEnum optimization_type;
     int executions, evaluations, proteins_evalued, p;
 
-    std::ifstream input_file("resources/inputs/proteins.txt");
+    std::ifstream input_file("resources/inputs/input.txt");
     readInput(input_file, optimization_type, executions, evaluations, proteins_evalued, p);
 
     std::vector<NelderMead> parameters(proteins_evalued);
@@ -73,16 +73,16 @@ int main() {
 
     readInputProteins(input_file, evaluations, p, optimization_type, parameters, parametersAB);
     
-    for(int i = 1; i <= 64; i *= 2){
+    // for(int i = 1; i <= 64; i *= 2){
 
-        printf("-*-*-*-*-*-*-*-*-*-*-*-*-*- P == %d --*-*-*-*-*-*-*-*-*-*-*-*-*\n", i);
+        // printf("-*-*-*-*-*-*-*-*-*-*-*-*-*- P == %d --*-*-*-*-*-*-*-*-*-*-*-*-*\n", i);
 
-        for(int  j = 0; j < proteins_evalued; j++){
-            parameters[j].p = i;
-        }
+        // for(int  j = 0; j < proteins_evalued; j++){
+            // parameters[j].p = i;
+        // }
 
-        run(executions, proteins_evalued, parameters, parametersAB, i);
-    }
+    run(executions, proteins_evalued, parameters, parametersAB);
+    // }
 
 
 }

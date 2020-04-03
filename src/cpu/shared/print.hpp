@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util.hpp"
+#include "../../shared/util.hpp"
 
 void printVertex(int dimension, float * p_vertex, const char * msg){
 	printf("%s:\n", msg);

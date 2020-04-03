@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../shared/print.hpp"
+
 struct Calculate3DAB{
     int protein_length;
 
@@ -69,11 +71,64 @@ void calculateCoordinates(float * p_vertex, float * aminoacid_position, int prot
 	}
 }
 
+void calculateXABLAU(float * p_angles,  float * p_obj, int n, int dim, int protein_length, std::string protein_chain){
+
+	std::vector<float> aminoacid_position(protein_length * 3);
+
+	for(int k = 0; k < n; k++){
+		int stride = k * dim;
+
+		for(int i = 0; i < protein_length - 2; i++){
+			aminoacid_position[0] = 0.0f;
+			aminoacid_position[0 + protein_length] = 0.0f;
+			aminoacid_position[0 + protein_length * 2] = 0.0f;
+
+			aminoacid_position[1] = 0.0f;
+			aminoacid_position[1 + protein_length] = 1.0f;
+			aminoacid_position[1 + protein_length * 2] = 0.0f;
+
+			aminoacid_position[2] = cosf(p_angles[stride + 0]);
+			aminoacid_position[2 + protein_length] = sinf(p_angles[stride + 0]) + 1.0f;
+			aminoacid_position[2 + protein_length * 2] = 0.0f;
+
+			for(int j = 3; j < protein_length; j++){
+				aminoacid_position[j] = aminoacid_position[j - 1] + cosf(p_angles[stride + j - 2]) * cosf(p_angles[stride + j + protein_length - 5]); // j - 3 + protein_length - 2
+				aminoacid_position[j + protein_length] = aminoacid_position[j - 1 + protein_length] + sinf(p_angles[stride + j - 2]) * cosf(p_angles[stride + j + protein_length - 5]);
+				aminoacid_position[j + protein_length * 2] = aminoacid_position[j - 1 + protein_length * 2] + sinf(p_angles[stride + j + protein_length - 5]);
+			}
+		}
+		float sum = 0.0f, c, d, dx, dy, dz;
+
+		for(int i = 0; i < protein_length - 2; i++){
+			sum += (1.0f - cosf(p_angles[stride + i])) / 4.0f;
+		}
+
+		for(int i = 0; i < protein_length - 2; i++){
+			for(int j = i + 2; j < protein_length; j++){
+				if(protein_chain[i] == 'A' && protein_chain[j] == 'A')
+					c = 1.0;
+				else if(protein_chain[i] == 'B' && protein_chain[j] == 'B')
+					c = 0.5;
+				else
+					c = -0.5;
+
+				dx = aminoacid_position[i] - aminoacid_position[j];
+				dy = aminoacid_position[i + protein_length] - aminoacid_position[j + protein_length];
+				dz = aminoacid_position[i + protein_length * 2] - aminoacid_position[j + protein_length * 2];
+				d = sqrtf( (dx * dx) + (dy * dy) + (dz * dz) );
+
+				sum += 4.0f * ( 1.0f / powf(d, 12.0f) - c / powf(d, 6.0f) );
+			}
+		}
+		p_obj[k] = sum;
+	}
+}
+
 float calculate3DABOffLattice(float * p_vertex, void * problem_parameters){
 
 	ABOffLattice * parametersAB = (ABOffLattice*)problem_parameters;
-
     int protein_length = (*parametersAB).protein_length;
+	
 	std::vector<float> aminoacid_position(protein_length * 3);
 	
 	calculateCoordinates(p_vertex, &aminoacid_position[0], protein_length);
@@ -90,7 +145,6 @@ float calculate3DABOffLattice(float * p_vertex, void * problem_parameters){
 
 
 void nelderMead_initialize(int dimension, float * p_simplex, float * p_start, float step){
-
 	for(int i = 0; i < dimension + 1; i++){
 
 		int stride = i * dimension;
@@ -107,19 +161,32 @@ void nelderMead_initialize(int dimension, float * p_simplex, float * p_start, fl
 }
 
 void nelderMead_calculateSimplex(int dimension, int &evaluations_used, float * p_simplex, float * p_obj_function, void * problem_parameters = NULL){
+	
+	ABOffLattice * parametersAB = (ABOffLattice*)problem_parameters;
 
+	calculateXABLAU(p_simplex,  p_obj_function, dimension + 1, dimension, (*parametersAB).protein_length, (*parametersAB).aa_sequence);
+	/*
 	for(int i =  0; i < dimension + 1; i++){
 		p_obj_function[i] = calculate3DABOffLattice(p_simplex + (i * dimension), problem_parameters);
-		// p_obj_function[i] = (*fn)(p_simplex + (i * dimension));
 		evaluations_used += 1;
 	}
+	*/
 }
 
-void nelderMead_calculateVertex(int &evaluations_used, float &obj, float * p_vertex, void * problem_parameters = NULL){
+void nelderMead_calculateVertex(int dimension, int &evaluations_used, float &obj, float * p_vertex, void * problem_parameters = NULL){
+
+	ABOffLattice * parametersAB = (ABOffLattice*)problem_parameters;
+
+	float * oo = (float*)malloc(sizeof(float));
+
+	calculateXABLAU(p_vertex,  oo, 1, dimension, (*parametersAB).protein_length, (*parametersAB).aa_sequence);
+	obj = *oo;
 	
+	free(oo);
+	/*
 	obj = calculate3DABOffLattice(p_vertex, problem_parameters);
-	evaluations_used = evaluations_used + 1;
-	// obj = (*fn)( &p_vertex[0] );
+	evaluations_used++;
+	*/
 }
 
 
@@ -200,15 +267,14 @@ void nelderMead_shrink(int dimension, int index_best, float * p_simplex){
 
 		int stride = i * dimension;
 		for(int j = 0; j < dimension; j++){
-			 p_simplex[stride + j] = (p_simplex[stride + j] + p_simplex[index_best * dimension + j]) * 0.5f;
-			// p_simplex[stride + j] = 0.5 * p_simplex[stride_best + j] + (1.0 - 0.5) * p_simplex[stride + j];
+			//  p_simplex[stride + j] = (p_simplex[stride + j] + p_simplex[index_best * dimension + j]) * 0.5f;
+			p_simplex[stride + j] = 0.5 * p_simplex[stride_best + j] + (1.0 - 0.5) * p_simplex[stride + j];
 		}
 	}
 }
 
 NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFile, void * problem_parameters = NULL)
 {
-
 	int dimension = parameters.dimension;
 
 	parameters.step = 1.0f;
@@ -217,13 +283,10 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 	parameters.contraction_coef = 0.5f;
 	parameters.shrink_coef = 0.5f;
 
-	parameters.evaluations_used = 0;
-
 	int index_worst, index_best;
 
 	float best, worst;
 	float obj_reflection, obj_vertex;
-
 	
 	std::vector<float> simplex(dimension * (dimension + 1)); // p_simplex 
 	std::vector<float> centroid(dimension);
@@ -239,39 +302,34 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 	float * p_vertex 		 = &vertex[0];
 	float * p_obj_function	 = &obj_function[0];
 
-	int evaluations = 0, action, latest_improvement = 0;
-	int one_percent = parameters.evaluations_number / 100;
+	int eval = 0;
 
 	nelderMead_initialize(dimension, p_simplex, parameters.p_start, parameters.step);
-	nelderMead_calculateSimplex(dimension, evaluations, p_simplex, p_obj_function, problem_parameters);
-
-	latest_improvement = evaluations;
+	nelderMead_calculateSimplex(dimension, eval, p_simplex, p_obj_function, problem_parameters);
+	eval += dimension + 1;
 
 	nelderMead_findBest(dimension, best, index_best, p_obj_function);
 
-	// outputFile << "0 " << best << std::endl;
-	
-	while (parameters.evaluations_used + evaluations < parameters.evaluations_number) {
-
+	printf("[%d] (%d): %.7f\n",  eval, parameters.evaluations_number, best);
+	for (; eval < parameters.evaluations_number; ) {
 		nelderMead_findWorst(dimension, worst, index_worst, p_obj_function);
 
 		nelderMead_centroid(dimension, index_worst, p_simplex, p_centroid);
 
 		nelderMead_reflection(dimension, index_worst, parameters.reflection_coef, p_simplex, p_centroid, p_reflection);
-		nelderMead_calculateVertex(evaluations, obj_reflection, p_reflection, problem_parameters);
+		nelderMead_calculateVertex(dimension, eval, obj_reflection, p_reflection, problem_parameters);
+		eval++;
 
-		action = 0;
 		if(obj_reflection < best){
 
 			nelderMead_expansion(dimension, parameters.expansion_coef, p_centroid, p_reflection, p_vertex);
-			nelderMead_calculateVertex(evaluations, obj_vertex, p_vertex, problem_parameters);
+			nelderMead_calculateVertex(dimension, eval, obj_vertex, p_vertex, problem_parameters);
+			eval++;
 
 			if(obj_vertex < best){
 				nelderMead_replacement(dimension, index_worst, p_simplex, p_vertex, obj_vertex, p_obj_function);
-				action = 1;
 			}else{
 				nelderMead_replacement(dimension, index_worst, p_simplex, p_reflection, obj_reflection, p_obj_function);
-				action = 2;
 			}
 		}else{
 			int c = 0;
@@ -284,7 +342,6 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 			/* Se reflection melhor que segundo pior vértice (e pior) */
 			if(c >= 2){
 				nelderMead_replacement(dimension, index_worst, p_simplex, p_reflection, obj_reflection, p_obj_function);
-				action = 10;
 			}else{
 				if(obj_reflection < worst){
 					nelderMead_contraction(dimension, parameters.contraction_coef, p_centroid, 0, p_reflection, p_vertex);
@@ -293,40 +350,27 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 					nelderMead_contraction(dimension, parameters.contraction_coef, p_centroid, index_worst, p_simplex, p_vertex);
 
 				}
-				nelderMead_calculateVertex(evaluations, obj_vertex, p_vertex, problem_parameters);
+				nelderMead_calculateVertex(dimension, eval, obj_vertex, p_vertex, problem_parameters);
+				eval++;
 
 				 if(obj_vertex < obj_reflection and obj_vertex < worst){
 					nelderMead_replacement(dimension, index_worst, p_simplex, p_vertex, obj_vertex, p_obj_function);
-					action = 100;
-
 				 }else if(obj_reflection < worst){
 					nelderMead_replacement(dimension, index_worst, p_simplex, p_reflection, obj_reflection, p_obj_function);
-					action = 101;
-
 				}else{
-					action = 102;
 					nelderMead_shrink(dimension, index_best, p_simplex);
-					nelderMead_calculateSimplex(dimension, evaluations, p_simplex, p_obj_function, problem_parameters);
-
+					nelderMead_calculateSimplex(dimension, eval, p_simplex, p_obj_function, problem_parameters);
+					eval += dimension + 1;
 					nelderMead_findBest(dimension, best, index_best, p_obj_function);
 				}
 			}
 		}
-
 		if (p_obj_function[index_worst] < best){ 
 			best = p_obj_function[index_worst]; 
 			index_best = index_worst; 
-
-			if(evaluations > one_percent){
-				parameters.evaluations_used += evaluations;
-				evaluations = 0;
-				// outputFile << parameters.evaluations_used << ' ' << best << std::endl;
-			}
-
-			latest_improvement = parameters.evaluations_used + evaluations;
+    		printf("[%d] (%d): %.7f\n",  eval, parameters.evaluations_number, best);
 		}
 	}
-	parameters.evaluations_used += evaluations;
 
 	// outputFile << parameters.evaluations_used << ' ' << best << std::endl;
 	
@@ -334,8 +378,7 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 
 	result.best = best;
 	result.best_vertex.resize(dimension);
-	result.evaluations_used = parameters.evaluations_used;
-	result.latest_improvement = latest_improvement;
+	result.evaluations_used = eval;
 
 	for(int i = 0; i < dimension; i++){
 		result.best_vertex[i] = p_simplex[index_best * dimension + i];

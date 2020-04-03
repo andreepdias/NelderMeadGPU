@@ -3,6 +3,7 @@
 #include "../shared/reductions.cuh"
 #include "../shared/objectiveFunctions.cuh"
 #include "../shared/util.cuh"
+#include "../shared/print.cuh"
 
 
 void nelderMead_calculateVertexFast(const int dimension, int &evaluations_used, float &h_obj, const float * p_vertex, const void * problem_parameters, float * obj){
@@ -61,7 +62,6 @@ __global__ void nelderMead_initializeFast(const int dimension, const float step,
 	__syncthreads();
 
 	p_simplex[index] = l;
-	
 }
 
 __global__ void nelderMead_centroidFast(const int dimension, const int index_worst, const float * __restrict__ p_simplex, float * p_centroid){
@@ -231,8 +231,6 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 	parameters.shrink_coef = 1.0f - (1.0f / dimension); // omega
 	*/
 
-	parameters.evaluations_used = 0;
-	
 	thrust::device_vector<float> d_start(dimension);	
 	thrust::device_vector<float> d_simplex(dimension * (dimension + 1));
 	thrust::device_vector<float> d_centroid(dimension);
@@ -254,6 +252,8 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 	int * idx;
 	int * count;
 	float * recent;
+
+	int eval = 0;
 	
 	cudaMallocManaged(&obj, sizeof(float));
 	cudaMallocManaged(&idx, sizeof(int));
@@ -273,19 +273,15 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 	nelderMead_initializeFast<<< dimension, dimension + 1 >>>(dimension, parameters.step, p_start, p_simplex);
 	cudaDeviceSynchronize();
 
-	nelderMead_calculateSimplexFast(dimension + 1, dimension, parameters.evaluations_used, p_obj_function, p_simplex, problem_parameters);
-	
+	nelderMead_calculateSimplexFast(dimension + 1, dimension, eval, p_obj_function, p_simplex, problem_parameters);
+
 	*idx = index_best = index_worst = 0;
 	*recent = *obj = best = worst = d_obj_function[0];
 
 	nelderMead_findBestFast(dimension, numberBlocks, best, index_best, p_obj_function, obj, idx);
 
-	// outputFile << "0 " << best << std::endl;
-	// int c = 0, one_percent = parameters.iterations_number / 100;
-
-	
-	while (parameters.evaluations_used < parameters.evaluations_number) {
-		// c++;
+	printf("[%d] (%d): %.7f\n", eval, parameters.evaluations_number, best);
+	for (;eval < parameters.evaluations_number;) {
 		
 		*obj = best;
 		// *idx = index_best;
@@ -296,22 +292,25 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 		
 		nelderMead_reflectionFast<<< numberBlocks, 32 >>>(dimension, parameters.reflection_coef, p_simplex, index_worst, p_centroid, p_reflection);
 		cudaDeviceSynchronize();
-		nelderMead_calculateVertexFast(dimension, parameters.evaluations_used, obj_reflection, p_reflection, problem_parameters, obj);
+
+		nelderMead_calculateVertexFast(dimension, eval, obj_reflection, p_reflection, problem_parameters, obj);
 		
 		if(obj_reflection < best){
-			
-			
 			nelderMead_expansionFast<<< numberBlocks, 32 >>>(dimension, parameters.expansion_coef, p_centroid, p_reflection, p_vertex);
 			cudaDeviceSynchronize();
 			
-			nelderMead_calculateVertexFast(dimension, parameters.evaluations_used, obj_vertex, p_vertex, problem_parameters, obj);
+			nelderMead_calculateVertexFast(dimension, eval, obj_vertex, p_vertex, problem_parameters, obj);
+
 			if(obj_vertex < best){
 
 				nelderMead_replacementFast<<< numberBlocks, 32 >>>(dimension, p_simplex, p_vertex, index_worst, p_obj_function, obj_vertex, recent);
 				cudaDeviceSynchronize();
+				worst = *recent;
 			}else{
+				
 				nelderMead_replacementFast<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, index_worst, p_obj_function, obj_reflection, recent);
 				cudaDeviceSynchronize();
+				worst = *recent;
 			}
 		}else{
 			*count = 0;
@@ -323,6 +322,7 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 				
 				nelderMead_replacementFast<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, index_worst, p_obj_function, obj_reflection, recent);
 				cudaDeviceSynchronize();
+				worst = *recent;
 			}else{
 				if(obj_reflection < worst){
 					
@@ -332,40 +332,46 @@ NelderMeadResult nelderMeadFast (NelderMead &parameters, std::ofstream &outputFi
 					nelderMead_contractionFast<<< numberBlocks, 32 >>>(dimension, parameters.contraction_coef, p_centroid, index_worst, p_simplex, p_vertex);
 					cudaDeviceSynchronize();
 				}
-				nelderMead_calculateVertexFast(dimension, parameters.evaluations_used, obj_vertex, p_vertex, problem_parameters, obj);
+				nelderMead_calculateVertexFast(dimension, eval, obj_vertex, p_vertex, problem_parameters, obj);
 				
 				if(obj_vertex < obj_reflection and obj_vertex < worst){
 					
 					nelderMead_replacementFast<<< numberBlocks, 32 >>>(dimension, p_simplex, p_vertex, index_worst, p_obj_function, obj_vertex, recent);
 					cudaDeviceSynchronize();
+					worst = *recent;
 					
 				}else if(obj_reflection < worst){
 					
 					nelderMead_replacementFast<<< numberBlocks, 32 >>>(dimension, p_simplex, p_reflection, index_worst, p_obj_function, obj_reflection, recent);
 					cudaDeviceSynchronize();
+					worst = *recent;
 				}else{
 					nelderMead_shrinkFast<<< dimension, dimension + 1 >>>(dimension, parameters.shrink_coef, p_simplex, index_best);
+
 					cudaDeviceSynchronize();
-					nelderMead_calculateSimplexFast(dimension + 1, dimension, parameters.evaluations_used, p_obj_function, p_simplex, problem_parameters);
+					nelderMead_calculateSimplexFast(dimension + 1, dimension, eval, p_obj_function, p_simplex, problem_parameters);
 					
 					*obj = best;
 					*idx = index_best;
 					nelderMead_findBestFast(dimension, numberBlocks, best, index_best, p_obj_function, obj, idx);
+					nelderMead_findWorstFast(dimension, numberBlocks, worst, index_worst, p_obj_function, obj, idx);
+
 				}
 			}
 		}
-		if (*recent < best){ 
-			best = *recent; 
+		if (worst < best){ 
+			best = worst; 
 			index_best = index_worst; 			
+			printf("[%d] (%d): %.7f\n", eval, parameters.evaluations_number, best);
 		}
 	}
-	// outputFile << parameters.evaluations_used << ' ' << best << std::endl;
+	// outputFile << eval << ' ' << best << std::endl;
 	
 	NelderMeadResult result;
 	
 	result.best = best;
 	result.best_vertex.resize(dimension);
-	result.evaluations_used = parameters.evaluations_used;
+	result.evaluations_used = eval;
 	
 	int stride = index_best * dimension;
 	thrust::copy(d_simplex.begin() + stride, d_simplex.begin() + stride + dimension, result.best_vertex.begin());

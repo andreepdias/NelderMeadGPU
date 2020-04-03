@@ -11,11 +11,9 @@ void run(int &executions, int &proteins_evalued, std::vector<NelderMead> &parame
     std::ofstream output_plot_file;
     std::string path;
     double start, stop, elapsed_time;
-
     printParameters(executions, proteins_evalued, parameters[0].evaluations_number);
 
     for(int k = 0; k < proteins_evalued; k++){
-
         printProteinParameters(parameters[k], parametersAB[k]);
 
         std::vector<NelderMeadResult> results(executions);
@@ -42,9 +40,9 @@ void run(int &executions, int &proteins_evalued, std::vector<NelderMead> &parame
 int main(int argc, char * argv[]){
 
     OptimizationTypeEnum optimization_type;
-    int executions, evaluations, proteins_evalued, p;
+    int executions, evaluations, proteins_evalued, p = 1;
 
-    std::ifstream input_file("resources/inputs/proteins.txt");
+    std::ifstream input_file("resources/inputs/input.txt");
     readInput(input_file, optimization_type, executions, evaluations, proteins_evalued, p);
 
     std::vector<NelderMead> parameters(proteins_evalued);

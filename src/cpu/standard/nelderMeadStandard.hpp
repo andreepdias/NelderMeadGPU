@@ -4,7 +4,7 @@
 
 NelderMeadResult nelderMeadSingle(NelderMead &parameters, void * problem_parameters);
 
-void printVertex(int dimension, float * p_vertex, const char * msg){
+void printVertexST(int dimension, float * p_vertex, const char * msg){
 	printf("%s:\n", msg);
 	for(int i = 0; i < dimension; i++){
 		printf("%.5f ", p_vertex[i]);
@@ -12,7 +12,7 @@ void printVertex(int dimension, float * p_vertex, const char * msg){
 	printf("\n\n");
 }
 
-void printSimplex(int dimension, float * p_simplex, std::pair<float, int> * p_obj, const char * msg){
+void printSimplexST(int dimension, float * p_simplex, std::pair<float, int> * p_obj, const char * msg){
 	printf("%s:\n", msg);
 	for(int i = 0; i < dimension + 1; i++){
 		int stride = p_obj[i].second * dimension;
@@ -25,7 +25,7 @@ void printSimplex(int dimension, float * p_simplex, std::pair<float, int> * p_ob
 	printf("\n");
 }
 
-void printObjFunction(int dimension, std::pair<float, int> * p_obj, const char * msg){
+void printObjFunctionST(int dimension, std::pair<float, int> * p_obj, const char * msg){
 	printf("%s:\n", msg);
 	for(int i = 0; i < dimension + 1; i++){
 		printf("%2d. %.10f\n", p_obj[i].second + 1, p_obj[i].first);
@@ -33,9 +33,9 @@ void printObjFunction(int dimension, std::pair<float, int> * p_obj, const char *
 	printf("\n");
 }
 
-void printSingleObjFunction(std::pair<float, int> * p_obj, const char * msg){
+void printSingleObjFunctionST(std::pair<float, int> * p_obj, const char * msg){
 	printf("%s:\n", msg);
-	printf("%2d. %.10f\n\n", p_obj[0].second + 1, p_obj[0].first);
+	printf("%2d. %.7f\n\n", p_obj[0].second + 1, p_obj[0].first);
 }
 
 void nelderMead_initialize(NelderMead &p){
